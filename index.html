@@ -7,7 +7,7 @@
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Barrio&display=swap" rel="stylesheet">
 
@@ -38,17 +38,10 @@
       
       @media (max-width: 900px) { .feature-container { flex-direction: column; } }
 
-      /* --- NEW: Larger Camera Panel Layout --- */
       @media (min-width: 901px) {
-        #tab-content-0 .feature-container {
-          flex-direction: row-reverse; /* Put camera on the left */
-        }
-        #tab-content-0 .control-panel {
-          flex: 1.5; /* Make camera panel larger */
-        }
-        #tab-content-0 .canvas {
-          flex: 1; /* Make output panel smaller */
-        }
+        #tab-content-0 .feature-container { flex-direction: row-reverse; }
+        #tab-content-0 .control-panel { flex: 1.5; }
+        #tab-content-0 .canvas { flex: 1; }
       }
 
       .theme-switcher{display:flex;justify-content:center;align-items:center;gap:15px;margin-bottom:30px;
@@ -95,11 +88,8 @@
       }
       
       .tabs { 
-        display: flex; 
-        justify-content: center;
-        gap: 10px; 
-        margin-bottom: 20px; 
-        border-bottom: 2px solid var(--border-color); 
+        display: flex; justify-content: center; gap: 10px; 
+        margin-bottom: 20px; border-bottom: 2px solid var(--border-color); 
       }
       .tab-button { background: none; border: none; padding: 10px 15px; font-size: 1.1em; cursor: pointer; color: var(--text-color); opacity: 0.6; position: relative; }
       .tab-button.active { opacity: 1; font-weight: bold; }
@@ -107,13 +97,8 @@
       .tab-content { display: none; }
       .tab-content.active { display: block; }
       
-      #feature0-inputs {
-        align-items: center;
-      }
-      .camera-container { 
-        position: relative; 
-        width: 100%;
-      }
+      #feature0-inputs { align-items: center; }
+      .camera-container { position: relative; width: 100%; }
       #camera-feed, #capture-canvas {
         width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3;
         transform: scaleX(-1);
@@ -128,50 +113,38 @@
         z-index: 10; transform: scaleX(-1);
       }
       #label-overlay {
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        pointer-events: none;
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
       }
       .outfit-label {
         position: absolute; display: flex; align-items: center;
-        transform: translate(-50%, -50%);
-        animation: fadeIn 0.5s ease-in-out;
+        transform: translate(-50%, -50%); animation: fadeIn 0.5s ease-in-out;
       }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       .outfit-label .dot {
         width: 15px; height: 15px; background: var(--primary-accent-color);
-        border-radius: 50%; border: 2px solid #fff;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
       }
-      .outfit-label .line {
-        width: 40px; height: 2px; background: #fff;
-      }
+      .outfit-label .line { width: 40px; height: 2px; background: #fff; }
       .outfit-label .text {
         padding: 5px 10px; background: rgba(0,0,0,0.7); color: #fff;
         border-radius: 5px; white-space: nowrap; font-size: 0.9em;
       }
       
       #timer-controls {
-        display: none; flex-direction: column; align-items: center;
-        margin-top: 15px; gap: 10px;
+        display: none; flex-direction: column; align-items: center; margin-top: 15px; gap: 10px;
       }
-      .timer-options {
-        display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-      }
+      .timer-options { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
       #timer-controls label {
-        display: flex; align-items: center; gap: 10px; cursor: pointer;
-        margin: 0; font-weight: normal;
+        display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: normal;
       }
       #timer-controls input[type="radio"] {
-        appearance: none; -webkit-appearance: none; margin: 0; width: 20px;
-        height: 20px; border: 2px solid var(--border-color); border-radius: 50%;
-        transition: all 0.2s; cursor: pointer;
+        appearance: none; -webkit-appearance: none; margin: 0; width: 20px; height: 20px;
+        border: 2px solid var(--border-color); border-radius: 50%; transition: all 0.2s; cursor: pointer;
       }
       #timer-controls input[type="radio"]::after {
-        content: ''; display: block; width: 10px; height: 10px; border-radius: 50%;
-        position: relative; top: 50%; left: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        background-color: var(--primary-accent-color);
-        transition: transform 0.2s ease-in-out;
+        content: ''; display: block; width: 10px; height: 10px; border-radius: 50%; position: relative;
+        top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+        background-color: var(--primary-accent-color); transition: transform 0.2s ease-in-out;
       }
       #timer-controls input[type="radio"]:checked { border-color: var(--primary-accent-color); }
       #timer-controls input[type="radio"]:checked::after { transform: translate(-50%, -50%) scale(1); }
@@ -187,8 +160,7 @@
       .swatch{width:25px;height:25px;border-radius:50%;border:1px solid var(--border-color);}
       .checkmark{
         display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); 
-        font-size:1.5em; color: var(--checkmark-color);
-        transition: color 0.3s;
+        font-size:1.5em; color: var(--checkmark-color); transition: color 0.3s;
       }
       .palette.selected .checkmark{display:block;}
     </style>
@@ -248,7 +220,7 @@
               </div>
               <div class="button-group" style="justify-content: center; margin-top: 15px;">
                 <button id="start-camera" data-original-text="Start Camera">Start Camera</button>
-                <button id="stop-camera" style="display: none;">Stop Camera</button>
+                <button id="stop-camera" data-original-text="Stop Camera" style="display: none;">Stop Camera</button>
                 <button id="capture-image" data-original-text="Analyze Outfit" disabled>Analyze Outfit</button>
               </div>
             </div>
@@ -306,7 +278,7 @@
           <div class="canvas">
             <div id="feature1-output" class="feature output-feature">
               <div class="button-group">
-                  <button id="generate1" data-original-text="Generate">Generate</button>
+                  <button id="generate1" data-original-text="Generate" data-processing-text="Generating...">Generate</button>
                   <button id="expand1" data-original-text="Expand" data-processing-text="Expanding..." disabled>Expand</button>
                   <button id="mutate1" data-original-text="Mutate" data-processing-text="Mutating..." disabled>Mutate</button>
                   <button id="copy1">Copy</button>
@@ -335,396 +307,4 @@
                 <div class="checkbox-group" id="garmentType2">
                   <label><input type="checkbox" value="Blazer">Blazer</label><label><input type="checkbox" value="Dress">Dress</label>
                   <label><input type="checkbox" value="Skirt">Skirt</label><label><input type="checkbox" value="Trousers">Trousers</label>
-                  <label><input type="checkbox" value="Jumpsuit">Jumpsuit</label><label><input type="checkbox" value="Hoodie">Hoodie</label>
-                  <label><input type="checkbox" value="Coat">Coat</label><label><input type="checkbox" value="Shirt">Shirt</label>
-                  <label><input type="checkbox" value="T-Shirt">T-Shirt</label><label><input type="checkbox" value="Gown">Gown</label>
-                  <label><input type="checkbox" value="Set">Set</label><label><input type="checkbox" value="Shoes">Shoes</label>
-                </div>
-              </div>
-              <label for="color2">Color</label>
-              <div class="color-selection-wrapper">
-                <label class="color-picker-label" id="color-preview2" style="background-color: #000000;">
-                    <input type="color" id="color2" value="#000000">
-                </label>
-              </div>
-              <div id="palette-container2" class="palette-container">
-                  <button id="ok-color2" class="palette-generate-button">Generate Palettes</button>
-              </div>
-              <label for="climate2">Climate</label>
-              <select id="climate2">
-                <option>Hot / Humid</option><option>Mild</option><option>Cool / Cold</option>
-                <option>Rain</option><option>Don’t mind, as long as the fit is cool</option>
-              </select>
-            </div>
-          </div>
-          <div class="canvas">
-            <div id="feature2-output" class="feature output-feature">
-              <div class="button-group">
-                  <button id="generate2" data-original-text="Generate">Generate</button>
-                  <button id="expand2" data-original-text="Expand" data-processing-text="Expanding..." disabled>Expand</button>
-                  <button id="mutate2" data-original-text="Mutate" data-processing-text="Mutating..." disabled>Mutate</button>
-                  <button id="copy2">Copy</button>
-                  <button id="export2">Export</button>
-                  <button id="clear2">Clear</button>
-              </div>
-              <div id="output2" class="output"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <script type="module">
-      const featureStates = { '0': {}, '1': { lastConcept: '', selectedPalette: '' }, '2': { lastConcept: '', selectedPalette: '' } };
-      
-      function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-      async function callProxy(prompt, outputEl, btnEl) {
-        const originalText = btnEl ? btnEl.dataset.originalText : '';
-        const processingText = btnEl ? (btnEl.dataset.processingText || 'Generating...') : 'Generating...';
-        
-        if (outputEl) outputEl.innerHTML = processingText;
-        if (btnEl) { btnEl.disabled = true; btnEl.textContent = processingText; }
-        
-        const maxRetries = 3;
-        let attempt = 0;
-
-        try {
-            while (attempt < maxRetries) {
-                const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
-
-                if (r.status === 503 && attempt < maxRetries - 1) {
-                    attempt++;
-                    const delay = Math.pow(2, attempt) * 1000;
-                    if (outputEl) outputEl.innerHTML = `Model is busy. Retrying in ${delay / 1000} seconds...`;
-                    await sleep(delay);
-                    continue;
-                }
-
-                const data = await r.json();
-                if (!r.ok) throw new Error(data?.error || `API error with status ${r.status}`);
-                
-                const text = data?.text || 'No content generated.';
-                if (outputEl) {
-                    const cleanHtml = text.replace(/\*\*/g, '').replace(/[\*#\-]/g, '').replace(/\n/g, '<br>');
-                    outputEl.innerHTML = cleanHtml;
-                }
-                return text;
-            }
-        } catch (e) {
-            if (outputEl) outputEl.textContent = `Error: ${e.message}`;
-            console.error("API call failed after all retries:", e);
-            return null;
-        } finally {
-            if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
-        }
-        return null; // Should not be reached if loop completes
-      }
-
-      async function generatePalettes(hexColor, containerEl, okBtn) {
-          const prompt = {
-            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B"). Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
-          };
-          
-          containerEl.innerHTML = '<h4>Generating palettes...</h4>';
-          const resultText = await callProxy(prompt, null, okBtn);
-          
-          if(!resultText){
-              containerEl.innerHTML = '<h4>Error generating palettes. Please try again.</h4>';
-              return;
-          }
-
-          try {
-              const jsonStringMatch = resultText.match(/\{.*\}/s);
-              if (!jsonStringMatch) throw new Error("Invalid JSON from AI.");
-              
-              const palettesData = JSON.parse(jsonStringMatch[0]);
-              containerEl.innerHTML = '<h4>Click a palette to use it:</h4>';
-              palettesData.palettes.forEach(p => {
-                  const paletteDiv = document.createElement('div');
-                  paletteDiv.className = 'palette';
-                  paletteDiv.title = `Use the ${p.theme} palette`;
-                  paletteDiv.innerHTML = `<h4>${p.theme}:</h4><div class="swatches">${p.colors.map(c => `<div class="swatch" title="${c.name}" style="background-color:${c.hex};"></div>`).join('')}</div><span class="checkmark">✔</span>`;
-                  paletteDiv.onclick = () => {
-                      const featureId = containerEl.id.replace('palette-container', '');
-                      featureStates[featureId].selectedPalette = `${p.theme} palette of ${p.colors.map(c=>c.name).join(', ')}`;
-                      document.querySelectorAll(`#palette-container${featureId} .palette`).forEach(el => el.classList.remove('selected'));
-                      paletteDiv.classList.add('selected');
-                  };
-                  containerEl.appendChild(paletteDiv);
-              });
-          } catch (e) {
-              containerEl.innerHTML = `<h4>Error parsing palettes. Please try again.</h4>`; console.error(e);
-          } finally {
-              containerEl.prepend(document.getElementById(`ok-color${containerEl.id.replace('palette-container', '')}`));
-          }
-      }
-
-      function clearFeature(id) {
-        featureStates[id] = { lastConcept: '', selectedPalette: '' };
-        document.getElementById(`output${id}`).innerHTML = '';
-        const paletteContainer = document.getElementById(`palette-container${id}`);
-        if (paletteContainer) {
-            const okBtn = document.getElementById(`ok-color${id}`);
-            paletteContainer.innerHTML = '';
-            paletteContainer.appendChild(okBtn);
-        }
-        document.querySelectorAll(`#garmentType${id} input[type="checkbox"]`).forEach(cb => cb.checked = false);
-        document.querySelectorAll(`#feature${id}-inputs select, #feature${id}-output select`).forEach(s => s.selectedIndex = 0);
-        const expandBtn = document.getElementById(`expand${id}`);
-        if(expandBtn) expandBtn.disabled = true;
-        const mutateBtn = document.getElementById(`mutate${id}`);
-        if(mutateBtn) mutateBtn.disabled = true;
-      }
-      
-      const tabs = document.querySelectorAll('.tab-button');
-      const tabContents = document.querySelectorAll('.tab-content');
-      tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          tabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          tabContents.forEach(c => c.classList.remove('active'));
-          document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active');
-        });
-      });
-
-      const videoEl = document.getElementById('camera-feed');
-      const canvasEl = document.getElementById('capture-canvas');
-      const startBtn = document.getElementById('start-camera');
-      const stopBtn = document.getElementById('stop-camera');
-      const captureBtn = document.getElementById('capture-image');
-      const output0 = document.getElementById('output0');
-      const timerControls = document.getElementById('timer-controls');
-      const countdownOverlay = document.getElementById('countdown-overlay');
-      const labelOverlay = document.getElementById('label-overlay');
-      const initialOutputContent = "Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.";
-      let stream = null;
-
-      function stopStream() {
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          stream = null;
-        }
-      }
-
-      function resetCameraUI() {
-          stopStream();
-          videoEl.srcObject = null;
-          videoEl.style.display = 'block';
-          canvasEl.style.display = 'none';
-          labelOverlay.innerHTML = '';
-          output0.innerHTML = initialOutputContent;
-          
-          startBtn.textContent = startBtn.dataset.originalText; // "Start Camera" or "Start Over"
-          if(startBtn.textContent !== "Start Over") startBtn.dataset.originalText = "Start Camera";
-
-          stopBtn.style.display = 'none';
-          captureBtn.disabled = true;
-          timerControls.style.display = 'none';
-          countdownOverlay.style.display = 'none';
-      }
-
-      async function startCamera() {
-          if (stream) stopStream(); // Stop any existing stream before starting a new one
-          try {
-              stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-              videoEl.srcObject = stream;
-              await videoEl.play();
-              
-              startBtn.dataset.originalText = "Start Over";
-              startBtn.textContent = "Start Over";
-              stopBtn.style.display = 'inline-block';
-              captureBtn.disabled = false;
-              timerControls.style.display = 'flex';
-              videoEl.style.display = 'block';
-              canvasEl.style.display = 'none';
-              labelOverlay.innerHTML = '';
-          } catch (err) {
-              output0.textContent = `Error accessing camera: ${err.message}`;
-              console.error("Camera error:", err);
-              resetCameraUI();
-          }
-      }
-
-      startBtn.addEventListener('click', startCamera);
-      stopBtn.addEventListener('click', resetCameraUI);
-
-      async function analyzeAndDrawLabels(base64Image) {
-        const prompt = {
-            text: `Analyze the provided image. Identify up to 4 main clothing items (e.g., hat, shirt, trousers, shoes). For each item, provide its name and a central coordinate point (x, y) as percentages of the image dimensions. The top-left corner is (0,0). Format as a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
-            image: base64Image
-        };
-        const resultText = await callProxy(prompt, null, null);
-        if(!resultText) return;
-
-        labelOverlay.innerHTML = '';
-        try {
-            const jsonStringMatch = resultText.match(/\[.*\]/s);
-            if (!jsonStringMatch) throw new Error("No valid JSON array found for labels.");
-            const items = JSON.parse(jsonStringMatch[0]);
-
-            items.forEach(item => {
-                if(!item.item || !item.point) return;
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'outfit-label';
-                labelDiv.style.left = `${100 - item.point.x}%`;
-                labelDiv.style.top = `${item.point.y}%`;
-                labelDiv.innerHTML = `<div class="dot"></div><div class="line"></div><div class="text">${item.item}</div>`;
-                labelOverlay.appendChild(labelDiv);
-            });
-        } catch(e) { console.error("Failed to parse or draw labels:", e); }
-      }
-
-      captureBtn.addEventListener('click', () => {
-        const timerValue = parseInt(document.querySelector('input[name="timer"]:checked').value, 10);
-        
-        const performCapture = async () => {
-            canvasEl.width = videoEl.videoWidth;
-            canvasEl.height = videoEl.videoHeight;
-            const context = canvasEl.getContext('2d');
-            context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-            videoEl.style.display = 'none';
-            canvasEl.style.display = 'block';
-            
-            stopStream(); // Stop camera access after freezing frame
-            stopBtn.style.display = 'none'; // Hide stop button
-            
-            const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
-            const stylePrompt = {
-              text: "Describe the outfit in this image and suggest 2 specific styling tweaks to elevate it. Be direct and encouraging, like a cool friend. Example: 'You’re rocking a soft Y2K look — try adding silver metallics and a bucket hat to match the futuristic edge 💫.'",
-              image: base64ImageData
-            };
-            
-            await Promise.all([
-              callProxy(stylePrompt, output0, captureBtn),
-              analyzeAndDrawLabels(base64ImageData)
-            ]);
-        };
-        
-        if (timerValue > 0) {
-            let count = timerValue;
-            countdownOverlay.textContent = count;
-            countdownOverlay.style.display = 'flex';
-            const interval = setInterval(() => {
-                count--;
-                countdownOverlay.textContent = count;
-                if (count <= 0) {
-                    clearInterval(interval);
-                    countdownOverlay.style.display = 'none';
-                    performCapture();
-                }
-            }, 1000);
-        } else {
-            performCapture();
-        }
-      });
-
-      ['1', '2'].forEach(id => {
-        const generateBtn = document.getElementById(`generate${id}`);
-        const expandBtn = document.getElementById(`expand${id}`);
-        const mutateBtn = document.getElementById(`mutate${id}`);
-
-        generateBtn.addEventListener('click', async () => {
-            const style = document.getElementById(`style${id}`).value;
-            const garmentTypes = Array.from(document.querySelectorAll(`#garmentType${id} input:checked`)).map(el => el.value).join(', ');
-            const color = document.getElementById(`color${id}`).value;
-            const paletteInfo = featureStates[id].selectedPalette ? `using the selected ${featureStates[id].selectedPalette}` : '';
-            let text;
-
-            if (id === '1') {
-                const bodyShape = document.getElementById('bodyShape1').value;
-                const occasion = document.getElementById('occasion1').value;
-                text = `As a friendly stylist, give a direct outfit recommendation. No fluff. Use simple B2-C1 English. Structure: 1. The Vibe. 2. What to Wear. 3. Body Shape Tip. Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
-            } else {
-                const climate = document.getElementById('climate2').value;
-                text = `As an innovative fashion strategist, your response must be direct and actionable. No fluff. The core concept MUST be innovative and solve a real-world problem. Generate a concise Fashion Concept (~300 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
-            }
-            
-            const result = await callProxy({ text }, document.getElementById(`output${id}`), generateBtn);
-            if (result) {
-                featureStates[id].lastConcept = result;
-                expandBtn.disabled = false;
-                mutateBtn.disabled = false;
-            }
-        });
-
-        expandBtn.addEventListener('click', () => {
-            const text = id === '1'
-                ? `Expand the previous outfit idea (~800 words) with more options for each piece (Top, Bottom, Shoes, Accessories). Previous Idea: "${featureStates[id].lastConcept}"`
-                : `Expand on the previous concept with more detail (~800 words), focusing on actionable specifics for Fabric, Construction, and Warnings. Previous Concept: "${featureStates[id].lastConcept}"`;
-            callProxy({ text }, document.getElementById(`output${id}`), expandBtn);
-        });
-
-        mutateBtn.addEventListener('click', async () => {
-            const text = id === '1'
-                ? `Mutate the previous outfit idea for a different vibe (~300 words). Original Idea: "${featureStates[id].lastConcept}"`
-                : `Mutate this concept into a new, innovative idea with a different angle (~300 words). Original Concept: "${featureStates[id].lastConcept}"`;
-            const result = await callProxy({ text }, document.getElementById(`output${id}`), mutateBtn);
-            if (result) { featureStates[id].lastConcept = result; }
-        });
-        
-        document.getElementById(`copy${id}`).addEventListener('click', () => navigator.clipboard.writeText(document.getElementById(`output${id}`).textContent).then(() => alert('Copied!')));
-        document.getElementById(`export${id}`).addEventListener('click', () => {
-          const blob = new Blob([document.getElementById(`output${id}`).textContent], { type: 'text/plain' });
-          const a = document.createElement('a');
-          a.download = id === '1' ? 'daily_outfit.txt' : 'fashion_concept.txt';
-          a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
-        });
-        document.getElementById(`clear${id}`).addEventListener('click', () => clearFeature(id));
-        const colorInput = document.getElementById(`color${id}`);
-        const colorPreview = document.getElementById(`color-preview${id}`);
-        const okColorBtn = document.getElementById(`ok-color${id}`);
-        const paletteContainer = document.getElementById(`palette-container${id}`);
-        colorInput.addEventListener('input', () => { colorPreview.style.backgroundColor = colorInput.value; paletteContainer.style.display = 'block'; });
-        okColorBtn.addEventListener('click', () => { 
-            generatePalettes(colorInput.value, paletteContainer, okColorBtn);
-        });
-      });
-      
-      const docEl = document.documentElement;
-      const accentPicker = document.getElementById('accent-color-picker');
-      const accentPreview = document.getElementById('accent-color-preview');
-      function setTheme(t){ docEl.setAttribute('data-theme', t); localStorage.setItem('whatthefit_theme', t); }
-      function setAccentColor(c){
-        docEl.style.setProperty('--primary-accent-color', c);
-        const hoverColor = c.length === 7 ? c + 'BF' : c; 
-        docEl.style.setProperty('--primary-accent-hover', hoverColor);
-        docEl.style.setProperty('--checkmark-color', c);
-        accentPreview.style.backgroundColor = c;
-        localStorage.setItem('whatthefit_accent', c);
-      }
-      document.getElementById('light-mode-btn').addEventListener('click', ()=>setTheme('light'));
-      document.getElementById('dark-mode-btn').addEventListener('click', ()=>setTheme('dark'));
-      accentPicker.addEventListener('input', (e)=>setAccentColor(e.target.value));
-
-      const savedTheme = localStorage.getItem('whatthefit_theme') || 'light';
-      const savedAccent = localStorage.getItem('whatthefit_accent') || '#000000';
-      setTheme(savedTheme); 
-      setAccentColor(savedAccent); 
-      accentPicker.value = savedAccent;
-
-      const syncAllHeights = () => {
-        if (window.innerWidth <= 900) {
-          ['0', '1', '2'].forEach(id => {
-            const output = document.getElementById(`feature${id}-output`);
-            if (output) output.style.height = 'auto';
-          });
-          return;
-        }
-        const panel1 = document.getElementById('feature1-inputs');
-        const panel2 = document.getElementById('feature2-inputs');
-        const output1 = document.getElementById('feature1-output');
-        const output2 = document.getElementById('feature2-output');
-        if (panel1 && output1) output1.style.height = `${panel1.offsetHeight}px`;
-        if (panel2 && output2) output2.style.height = `${panel2.offsetHeight}px`;
-      };
-      
-      ['1', '2'].forEach(id => {
-        const inputPanel = document.getElementById(`feature${id}-inputs`);
-        if (inputPanel) { new ResizeObserver(syncAllHeights).observe(inputPanel); }
-      });
-      window.addEventListener('load', syncAllHeights);
-      window.addEventListener('resize', syncAllHeights);
-    </script>
-  </body>
-</html>
+                  <label><input type="checkbox" value="Jumpsuit">Jumpsuit</label><label><input typ
