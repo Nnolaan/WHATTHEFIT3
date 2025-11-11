@@ -76,12 +76,19 @@
       }
       .button-group button:disabled, .palette-generate-button:disabled{ background: #555 !important; cursor:not-allowed; opacity:.7; box-shadow: none;}
       
-      .output{
+      .output, .about-us-content {
         padding:15px; background:var(--card-background); border-radius:8px; white-space:pre-wrap;
         border:1px solid var(--border-color); line-height:1.6; font-size:1em;
       }
 
-      .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); }
+      /* --- UPDATED TAB STYLES --- */
+      .tabs { 
+        display: flex; 
+        justify-content: center; /* Center the tabs */
+        gap: 10px; 
+        margin-bottom: 20px; 
+        border-bottom: 2px solid var(--border-color); 
+      }
       .tab-button { background: none; border: none; padding: 10px 15px; font-size: 1.1em; cursor: pointer; color: var(--text-color); opacity: 0.6; position: relative; }
       .tab-button.active { opacity: 1; font-weight: bold; }
       .tab-button.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--primary-accent-color); }
@@ -126,9 +133,8 @@
         border-radius: 5px; white-space: nowrap; font-size: 0.9em;
       }
       
-      /* --- NEW VERTICAL TIMER STYLES --- */
       #timer-controls {
-        display: none; /* Initially hidden */
+        display: none;
         flex-direction: column;
         align-items: center;
         margin-top: 15px;
@@ -215,13 +221,24 @@
 
       <!-- Tab Buttons -->
       <div class="tabs">
-        <button class="tab-button active" data-tab="0">Live Fit Check</button>
+        <button class="tab-button active" data-tab="about">About Us</button>
+        <button class="tab-button" data-tab="0">Live Fit Check</button>
         <button class="tab-button" data-tab="1">Your Daily Outfits</button>
         <button class="tab-button" data-tab="2">Fashion Concept</button>
       </div>
 
+      <!-- About Us Panel -->
+      <div id="tab-content-about" class="tab-content active">
+        <div class="about-us-content">
+          <b>WHATTHEFIT</b> is an AI-powered style assistant built for fashion students, designers, and everyday creators who want to sharpen their eye and experiment fearlessly.<br><br>
+          Turn on your camera, and WHATTHEFIT analyzes your current outfit, giving you personalized styling tips, color balance suggestions, and ways to remix your look while learning what works for your proportions and vibe.<br><br>
+          If you prefer privacy, you can manually add the pieces you want to wear or design. The system then generates full outfit ideas, showing how different garments, fabrics, and colors can work together.<br><br>
+          Beyond styling, WHATTHEFIT is designed to spark creativity, helping fashion students and designers discover new combinations, explore fresh aesthetics, and build confidence in their visual decisions. It’s not just about dressing better, it’s about thinking like a designer.
+        </div>
+      </div>
+
       <!-- Live Fit Check Panel -->
-      <div id="tab-content-0" class="tab-content active">
+      <div id="tab-content-0" class="tab-content">
         <div class="feature-container">
           <div class="control-panel">
             <div id="feature0-inputs" class="feature">
@@ -232,7 +249,6 @@
                   <div id="countdown-overlay"></div>
                   <div id="label-overlay"></div>
               </div>
-              <!-- REDESIGNED TIMER HTML -->
               <div id="timer-controls">
                 <strong>Timer:</strong>
                 <div class="timer-options">
@@ -251,13 +267,7 @@
           </div>
           <div class="canvas">
             <div id="feature0-output" class="feature output-feature">
-              <!-- UPDATED "ABOUT US" TEXT -->
-              <div id="output0" class="output">
-                <b>WHATTHEFIT</b> is an AI-powered style assistant built for fashion students, designers, and everyday creators who want to sharpen their eye and experiment fearlessly.<br><br>
-                Turn on your camera, and WHATTHEFIT analyzes your current outfit, giving you personalized styling tips, color balance suggestions, and ways to remix your look while learning what works for your proportions and vibe.<br><br>
-                If you prefer privacy, you can manually add the pieces you want to wear or design. The system then generates full outfit ideas, showing how different garments, fabrics, and colors can work together.<br><br>
-                Beyond styling, WHATTHEFIT is designed to spark creativity, helping fashion students and designers discover new combinations, explore fresh aesthetics, and build confidence in their visual decisions. It’s not just about dressing better, it’s about thinking like a designer.
-              </div>
+              <div id="output0" class="output">Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.</div>
             </div>
           </div>
         </div>
@@ -472,7 +482,7 @@
       const timerControls = document.getElementById('timer-controls');
       const countdownOverlay = document.getElementById('countdown-overlay');
       const labelOverlay = document.getElementById('label-overlay');
-      const initialOutputContent = output0.innerHTML;
+      const initialOutputContent = "Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.";
       let stream;
 
       function resetCameraUI() {
