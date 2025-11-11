@@ -88,8 +88,14 @@
       .tab-content { display: none; }
       .tab-content.active { display: block; }
       
-      #camera-feed { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3; }
+      /* --- NEW CAMERA STYLES --- */
+      .camera-container { position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; }
+      #camera-feed { display: block; width: 100%; height: 100%; object-fit: cover; }
+      #overlay-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+      /* --- END NEW STYLES --- */
+
       #capture-canvas { display: none; }
+      .camera-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 15px; }
 
       .palette-container{
         position: relative;
@@ -138,11 +144,24 @@
           <div class="control-panel">
             <div id="feature0-inputs" class="feature">
               <h2>Live Fit Check</h2>
-              <video id="camera-feed" playsinline></video>
+              <!-- NEW: Camera Container -->
+              <div class="camera-container">
+                <video id="camera-feed" playsinline></video>
+                <canvas id="overlay-canvas"></canvas>
+              </div>
               <canvas id="capture-canvas"></canvas>
-              <div class="button-group" style="justify-content: center; margin-top: 15px;">
+              <!-- NEW: Updated Camera Controls -->
+              <div class="camera-controls">
+                <select id="timer-select" style="width: auto; margin-bottom: 0;">
+                  <option value="0">Timer: Off</option>
+                  <option value="3">3s</option>
+                  <option value="5">5s</option>
+                  <option value="10">10s</option>
+                  <option value="15">15s</option>
+                </select>
                 <button id="start-camera" data-original-text="Start Camera">Start Camera</button>
                 <button id="capture-image" data-original-text="Analyze Outfit" disabled>Analyze Outfit</button>
+                <button id="start-over" data-original-text="Start Over" style="display: none;">Start Over</button>
               </div>
             </div>
           </div>
@@ -280,8 +299,6 @@
           const data = await r.json();
           if (!r.ok) throw new Error(data?.error || 'API error');
           const text = data?.text || 'No content generated.';
-          const cleanHtml = text.replace(/\*\*/g, '').replace(/[\*#\-]/g, '').replace(/\n/g, '<br>');
-          outputEl.innerHTML = cleanHtml;
           return text;
         } catch (e) {
           outputEl.textContent = `Error: ${e.message}`; return null;
@@ -333,11 +350,10 @@
         }
         document.querySelectorAll(`#garmentType${id} input[type="checkbox"]`).forEach(cb => cb.checked = false);
         document.querySelectorAll(`#feature${id}-inputs select, #feature${id}-output select`).forEach(s => s.selectedIndex = 0);
-        document.getElementById(`expand${id}`).disabled = true;
-        document.getElementById(`mutate${id}`).disabled = true;
+        document.getElementById(`expand${id}`)?.disabled = true;
+        document.getElementById(`mutate${id}`)?.disabled = true;
       }
       
-      // --- TAB SWITCHING LOGIC ---
       const tabs = document.querySelectorAll('.tab-button');
       const tabContents = document.querySelectorAll('.tab-content');
       tabs.forEach(tab => {
@@ -349,154 +365,188 @@
         });
       });
 
-      // --- CAMERA FEATURE ---
+      // --- NEW & UPDATED CAMERA FEATURE ---
       const videoEl = document.getElementById('camera-feed');
-      const canvasEl = document.getElementById('capture-canvas');
+      const captureCanvas = document.getElementById('capture-canvas');
+      const overlayCanvas = document.getElementById('overlay-canvas');
       const startBtn = document.getElementById('start-camera');
       const captureBtn = document.getElementById('capture-image');
+      const startOverBtn = document.getElementById('start-over');
+      const timerSelect = document.getElementById('timer-select');
       const output0 = document.getElementById('output0');
       let stream;
+      
+      function clearOverlay() {
+        const ctx = overlayCanvas.getContext('2d');
+        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      }
+
+      function startOver() {
+        clearOverlay();
+        output0.innerHTML = 'Capture a new image of your outfit for analysis.';
+        startOverBtn.style.display = 'none';
+        startBtn.style.display = 'inline-block';
+        captureBtn.style.display = 'inline-block';
+        captureBtn.disabled = false;
+        timerSelect.disabled = false;
+      }
 
       startBtn.addEventListener('click', async () => {
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
           videoEl.srcObject = null;
-          startBtn.textContent = 'Start Camera';
-          captureBtn.disabled = true;
           stream = null;
+          startBtn.textContent = startBtn.dataset.originalText; // "Start Camera"
+          captureBtn.disabled = true;
+          startOverBtn.style.display = 'none';
+          startBtn.style.display = 'inline-block';
+          clearOverlay();
           return;
         }
         try {
+          output0.textContent = 'Starting camera...';
           stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
           videoEl.srcObject = stream;
           await videoEl.play();
           startBtn.textContent = 'Stop Camera';
           captureBtn.disabled = false;
+          output0.innerHTML = 'Camera is active. Position yourself and analyze your outfit!';
         } catch (err) {
           output0.textContent = `Error accessing camera: ${err.message}`;
           console.error("Camera error:", err);
         }
       });
+      
+      startOverBtn.addEventListener('click', startOver);
+
+      function drawAnnotations(items) {
+        const ctx = overlayCanvas.getContext('2d');
+        const w = overlayCanvas.width;
+        const h = overlayCanvas.height;
+        ctx.font = 'bold 18px "Funnel Display", sans-serif';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+
+        const vietnameseMap = {
+          "hat": "Nón", "cap": "Nón",
+          "shirt": "Áo", "t-shirt": "Áo Thun", "blouse": "Áo Kiểu", "hoodie": "Áo Hoodie", "jacket": "Áo Khoác",
+          "trousers": "Quần Dài", "pants": "Quần Dài", "jeans": "Quần Jeans", "shorts": "Quần Ngắn",
+          "skirt": "Váy", "dress": "Đầm",
+          "shoes": "Giày", "sneakers": "Giày Thể Thao",
+          "glasses": "Kính", "sunglasses": "Kính Râm",
+          "bag": "Túi xách", "handbag": "Túi xách",
+          "accessory": "Phụ kiện", "watch": "Đồng hồ", "jewelry": "Trang sức"
+        };
+        
+        const positions = {
+            hat: { x: w * 0.5, y: h * 0.15 },
+            shirt: { x: w * 0.6, y: h * 0.45 },
+            trousers: { x: w * 0.4, y: h * 0.8 },
+            shoes: { x: w * 0.5, y: h * 0.95 },
+            accessory: {x: w * 0.2, y: h * 0.6}
+        };
+
+        let defaultPosIndex = 0;
+        const defaultPositions = [
+            {x: w * 0.75, y: h * 0.25}, {x: w * 0.25, y: h * 0.75}, 
+            {x: w * 0.2, y: h * 0.3}, {x: w * 0.8, y: h * 0.7}
+        ];
+
+        items.forEach(item => {
+            const key = item.toLowerCase();
+            const label = vietnameseMap[key] || item;
+            let pos = positions[key];
+            if (!pos) {
+                const genericKey = Object.keys(positions).find(k => key.includes(k));
+                pos = positions[genericKey] || defaultPositions[defaultPosIndex++ % defaultPositions.length];
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            ctx.lineTo(pos.x > w/2 ? pos.x - 20 : pos.x + 20, pos.y > h/2 ? pos.y - 20 : pos.y + 20);
+            ctx.stroke();
+
+            const textX = pos.x > w/2 ? pos.x - 30 : pos.x + 30;
+            const textY = pos.y > h/2 ? pos.y - 30 : pos.y + 30;
+            const textWidth = ctx.measureText(label).width;
+            
+            ctx.globalAlpha = 0.7;
+            ctx.fillRect(textX - 5, textY - 20, textWidth + 10, 28);
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = 'white';
+            ctx.textAlign = pos.x > w/2 ? 'right' : 'left';
+            ctx.fillText(label, textX, textY);
+        });
+      }
+
+      async function captureAndAnalyze() {
+          // 1. Freeze frame on overlay
+          overlayCanvas.width = videoEl.videoWidth;
+          overlayCanvas.height = videoEl.videoHeight;
+          const overlayCtx = overlayCanvas.getContext('2d');
+          overlayCtx.drawImage(videoEl, 0, 0, overlayCanvas.width, overlayCanvas.height);
+
+          // 2. Capture image for analysis on hidden canvas
+          captureCanvas.width = videoEl.videoWidth;
+          captureCanvas.height = videoEl.videoHeight;
+          const captureCtx = captureCanvas.getContext('2d');
+          captureCtx.drawImage(videoEl, 0, 0, captureCanvas.width, captureCanvas.height);
+          const base64ImageData = captureCanvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+          
+          // 3. Update UI
+          startBtn.style.display = 'none';
+          captureBtn.style.display = 'none';
+          startOverBtn.style.display = 'inline-block';
+          timerSelect.disabled = true;
+
+          // 4. Call AI
+          const prompt = {
+            text: `Analyze the outfit. First, list identifiable clothing items and accessories (e.g., 'hat', 'shirt', 'trousers', 'shoes', 'glasses'). Format this list as a valid JSON array of strings: {"items": ["item1", "item2"]}. Then, on a new line after the JSON, give 2 specific, encouraging styling tweaks to elevate the look.`,
+            image: base64ImageData
+          };
+          const resultText = await callProxy(prompt, output0, captureBtn);
+          
+          if(resultText) {
+            let items = [];
+            let stylingAdvice = resultText;
+            try {
+                const jsonMatch = resultText.match(/\{.*\}/s);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.items && Array.isArray(parsed.items)) {
+                        items = parsed.items;
+                        stylingAdvice = resultText.replace(/\{.*\}/s, '').trim();
+                    }
+                }
+            } catch (e) {
+                console.error("Could not parse items from AI response:", e);
+                stylingAdvice = "Could not parse AI response, but here is the raw text: " + resultText;
+            }
+
+            const cleanHtml = stylingAdvice.replace(/\*\*/g, '').replace(/[\*#\-]/g, '').replace(/\n/g, '<br>');
+            output0.innerHTML = cleanHtml;
+
+            if (items.length > 0) {
+              drawAnnotations(items);
+            }
+          }
+      }
 
       captureBtn.addEventListener('click', async () => {
-        canvasEl.width = videoEl.videoWidth;
-        canvasEl.height = videoEl.videoHeight;
-        const context = canvasEl.getContext('2d');
-        context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-        const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
-        
-        const prompt = {
-          text: "Describe the outfit in this image and suggest 2 specific styling tweaks to elevate it. Be direct and encouraging, like a cool friend. Example: 'You’re rocking a soft Y2K look — try adding silver metallics and a bucket hat to match the futuristic edge 💫.'",
-          image: base64ImageData
-        };
-        await callProxy(prompt, output0, captureBtn);
-      });
+          captureBtn.disabled = true;
+          timerSelect.disabled = true;
+          const timerValue = parseInt(timerSelect.value, 10);
 
-      // --- YDO FEATURE (ID 1) ---
-      document.getElementById('generate1').addEventListener('click', async (ev) => {
-        const style = document.getElementById('style1').value;
-        const garmentTypes = Array.from(document.querySelectorAll('#garmentType1 input:checked')).map(el => el.value).join(', ');
-        const bodyShape = document.getElementById('bodyShape1').value;
-        const occasion = document.getElementById('occasion1').value;
-        const color = document.getElementById('color1').value;
-        const paletteInfo = featureStates['1'].selectedPalette ? `using the selected ${featureStates['1'].selectedPalette}` : '';
-        const prompt = { text: `As a friendly stylist, give a direct outfit recommendation. No fluff. Use simple B2-C1 English. Structure: 1. The Vibe. 2. What to Wear. 3. Body Shape Tip. Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`};
-        const result = await callProxy(prompt, document.getElementById('output1'), ev.currentTarget);
-        if (result) { featureStates['1'].lastConcept = result; document.getElementById('expand1').disabled = false; document.getElementById('mutate1').disabled = false; }
-      });
-      document.getElementById('expand1').addEventListener('click', (ev) => callProxy({text: `Expand the previous outfit idea (~800 words) with more options for each piece (Top, Bottom, Shoes, Accessories). Previous Idea: "${featureStates['1'].lastConcept}"`}, document.getElementById('output1'), ev.currentTarget));
-      document.getElementById('mutate1').addEventListener('click', async (ev) => {
-        const result = await callProxy({text: `Mutate the previous outfit idea for a different vibe (~300 words). Original Idea: "${featureStates['1'].lastConcept}"`}, document.getElementById('output1'), ev.currentTarget);
-        if (result) { featureStates['1'].lastConcept = result; }
-      });
-      
-      // --- FASHION CONCEPT FEATURE (ID 2) ---
-      document.getElementById('generate2').addEventListener('click', async (ev) => {
-        const style = document.getElementById('style2').value;
-        const garmentTypes = Array.from(document.querySelectorAll('#garmentType2 input:checked')).map(el => el.value).join(', ');
-        const color = document.getElementById('color2').value;
-        const climate = document.getElementById('climate2').value;
-        const paletteInfo = featureStates['2'].selectedPalette ? `using the selected ${featureStates['2'].selectedPalette}` : '';
-        const prompt = { text: `As an innovative fashion strategist, your response must be direct and actionable. No fluff. The core concept MUST be innovative and solve a real-world problem. Generate a concise Fashion Concept (~300 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.` };
-        const result = await callProxy(prompt, document.getElementById('output2'), ev.currentTarget);
-        if (result) { featureStates['2'].lastConcept = result; document.getElementById('expand2').disabled = false; document.getElementById('mutate2').disabled = false; }
-      });
-      document.getElementById('expand2').addEventListener('click', (ev) => callProxy({text: `Expand on the previous concept with more detail (~800 words), focusing on actionable specifics for Fabric, Construction, and Warnings. Previous Concept: "${featureStates['2'].lastConcept}"`}, document.getElementById('output2'), ev.currentTarget));
-      document.getElementById('mutate2').addEventListener('click', async (ev) => {
-        const result = await callProxy({text: `Mutate this concept into a new, innovative idea with a different angle (~300 words). Original Concept: "${featureStates['2'].lastConcept}"`}, document.getElementById('output2'), ev.currentTarget);
-        if (result) { featureStates['2'].lastConcept = result; }
-      });
-      
-      // --- Universal UI for YDO and FC ---
-      ['1', '2'].forEach(id => {
-        document.getElementById(`copy${id}`).addEventListener('click', () => navigator.clipboard.writeText(document.getElementById(`output${id}`).textContent).then(() => alert('Copied!')));
-        document.getElementById(`export${id}`).addEventListener('click', () => {
-          const blob = new Blob([document.getElementById(`output${id}`).textContent], { type: 'text/plain' });
-          const a = document.createElement('a');
-          a.download = id === '1' ? 'daily_outfit.txt' : 'fashion_concept.txt';
-          a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
-        });
-        document.getElementById(`clear${id}`).addEventListener('click', () => clearFeature(id));
-        const colorInput = document.getElementById(`color${id}`);
-        const colorPreview = document.getElementById(`color-preview${id}`);
-        const okColorBtn = document.getElementById(`ok-color${id}`);
-        const paletteContainer = document.getElementById(`palette-container${id}`);
-        colorInput.addEventListener('input', () => { colorPreview.style.backgroundColor = colorInput.value; paletteContainer.style.display = 'block'; });
-        okColorBtn.addEventListener('click', () => { 
-            generatePalettes(colorInput.value, paletteContainer, okColorBtn);
-        });
-      });
-      
-      // --- Theme engine ---
-      const docEl = document.documentElement;
-      const accentPicker = document.getElementById('accent-color-picker');
-      const accentPreview = document.getElementById('accent-color-preview');
-      function setTheme(t){ docEl.setAttribute('data-theme', t); localStorage.setItem('whatthefit_theme', t); }
-      function setAccentColor(c){
-        docEl.style.setProperty('--primary-accent-color', c);
-        const hoverColor = c.length === 7 ? c + 'BF' : c; 
-        docEl.style.setProperty('--primary-accent-hover', hoverColor);
-        docEl.style.setProperty('--checkmark-color', c);
-        accentPreview.style.backgroundColor = c;
-        localStorage.setItem('whatthefit_accent', c);
-      }
-      document.getElementById('light-mode-btn').addEventListener('click', ()=>setTheme('light'));
-      document.getElementById('dark-mode-btn').addEventListener('click', ()=>setTheme('dark'));
-      accentPicker.addEventListener('input', (e)=>setAccentColor(e.target.value));
-
-      const savedTheme = localStorage.getItem('whatthefit_theme') || 'light';
-      const savedAccent = localStorage.getItem('whatthefit_accent') || '#000000';
-      setTheme(savedTheme); 
-      setAccentColor(savedAccent); 
-      accentPicker.value = savedAccent;
-
-      // --- DEFINITIVE HEIGHT SYNC LOGIC ---
-      const syncAllHeights = () => {
-        if (window.innerWidth <= 900) {
-          ['0', '1', '2'].forEach(id => {
-            const output = document.getElementById(`feature${id}-output`);
-            if (output) output.style.height = 'auto';
-          });
-          return;
-        }
-        ['0', '1', '2'].forEach(id => {
-            const inputs = document.getElementById(`feature${id}-inputs`);
-            const output = document.getElementById(`feature${id}-output`);
-            if (inputs && output) {
-              output.style.height = `${inputs.offsetHeight}px`;
-            }
-        });
-      };
-      
-      // Use ResizeObserver for robust height synchronization
-      ['0', '1', '2'].forEach(id => {
-        const inputPanel = document.getElementById(`feature${id}-inputs`);
-        if (inputPanel) {
-          new ResizeObserver(syncAllHeights).observe(inputPanel);
-        }
-      });
-      window.addEventListener('load', syncAllHeights);
-      window.addEventListener('resize', syncAllHeights);
-    </script>
-  </body>
-</html>
+          if (timerValue === 0) {
+              captureAndAnalyze();
+          } else {
+              let count = timerValue;
+              const ctx = overlayCanvas.getContext('2d');
+              overlayCanvas.width = videoEl.clientWidth;
+              overlayCanvas.height = videoEl.clientHeight;
+              
+              const countdownInterval = setInterval(() => {
+                  clearOverlay();
+                  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                  ctx.font = 'bold 100px "Funnel Display",
