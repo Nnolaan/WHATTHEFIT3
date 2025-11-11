@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>WHATTHEFIT</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barrio&display=swap" rel="stylesheet">
+
+    <style>
+      :root {
+        --background-color:#1a1a1a; --text-color:#f0f0f0; --card-background:#2c2c2c;
+        --feature-background:#333333; --input-background:#444; --border-color:#555;
+        --primary-accent-color: #000;
+        --primary-accent-hover: #333;
+        --checkmark-color: #000;
+      }
+      [data-theme="light"]{
+        --background-color:#f0f2f5; --text-color:#1c2121; --card-background:#fff;
+        --feature-background:#fdfdfd; --input-background:#e4e6eb; --border-color:#ced0d4;
+      }
+      body{font-family:"Funnel Display",sans-serif;font-size:16px;background:var(--background-color);color:var(--text-color);
+        margin:0;padding:20px;transition:.3s}
+      .container{max-width:1200px;margin:auto;background:var(--card-background);padding:30px;border-radius:15px}
+      h1{text-align:center;color:var(--primary-accent-color);font-family:"Barrio",system-ui;font-size:80px;transition:.3s}
+      h2{text-align:center;color:var(--primary-accent-color);transition:.3s;}
+      
+      .feature-container { display: flex; gap: 20px; margin-bottom: 20px; }
+      .control-panel { flex: 1; min-width: 320px; }
+      .canvas { flex: 2; display: flex; flex-direction: column; min-width: 0; }
+      .feature { background:var(--feature-background); padding:20px; border-radius:10px; box-sizing: border-box; display:flex; flex-direction:column; }
+      .output-feature { flex-grow: 1; }
+      .output { flex-grow: 1; overflow-y: auto; min-height: 0; }
+      
+      @media (max-width: 900px) { .feature-container { flex-direction: column; } }
+
+      .theme-switcher{display:flex;justify-content:center;align-items:center;gap:15px;margin-bottom:30px;
+        background:var(--feature-background);padding:10px;border-radius:10px}
+      .theme-button {
+        padding:8px 12px; border:1px solid var(--border-color); background-color:var(--input-background); color:var(--text-color); 
+        border-radius:8px; cursor:pointer; font-family:"Funnel Display",sans-serif;
+        transition: all 0.3s ease;
+      }
+      .theme-button:hover {
+        background: var(--primary-accent-hover); color: #fff;
+        box-shadow: 0 0 15px var(--primary-accent-hover), 0 0 25px var(--primary-accent-hover);
+      }
+      
+      .color-input-wrapper{display:flex;align-items:center;gap:10px}
+      .color-picker-label{position:relative;display:inline-block;width:30px;height:30px;cursor:pointer;border-radius:50%;border:1px solid var(--border-color)}
+      input[type="color"]{opacity:0;width:100%;height:100%;cursor:pointer;position:absolute;top:0;left:0}
+      
+      label{display:block;margin-bottom:8px;font-weight:bold}
+      select,.checkbox-group{width:100%;padding:10px;margin-bottom:15px;border-radius:8px;font-size:1em;
+        border:1px solid var(--border-color);background:var(--input-background);color:var(--text-color);box-sizing:border-box}
+      .color-selection-wrapper{position: relative; margin-bottom: 8px;}
+      .checkbox-container{background:var(--input-background);padding:10px;border-radius:8px;margin-bottom:15px;
+        border:1px solid var(--border-color)}
+      .checkbox-group{display:flex;flex-wrap:wrap;gap:15px}
+      .checkbox-group label{font-weight:normal;display:flex;align-items:center;gap:5px}
+      
+      .button-group{margin-bottom:20px; display:flex; flex-wrap:wrap; gap:8px;}
+      .button-group button, .palette-generate-button {
+        padding:8px 16px; border:none; border-radius:8px; cursor:pointer;
+        background: var(--primary-accent-color);
+        color:#fff; font-size:0.9em; font-family:"Funnel Display",sans-serif;
+        font-weight:bold; margin-right:0; transition: all 0.3s ease;
+      }
+      .button-group button:hover:not(:disabled), .palette-generate-button:hover:not(:disabled){
+        background: var(--primary-accent-hover);
+        box-shadow: 0 0 15px var(--primary-accent-hover), 0 0 25px var(--primary-accent-hover);
+      }
+      .button-group button:disabled, .palette-generate-button:disabled{ background: #555 !important; cursor:not-allowed; opacity:.7; box-shadow: none;}
+      
+      .output{
+        padding:15px; background:var(--card-background); border-radius:8px; white-space:pre-wrap;
+        border:1px solid var(--border-color); line-height:1.6; font-size:1em;
+      }
+
+      .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); }
+      .tab-button { background: none; border: none; padding: 10px 15px; font-size: 1.1em; cursor: pointer; color: var(--text-color); opacity: 0.6; position: relative; }
+      .tab-button.active { opacity: 1; font-weight: bold; }
+      .tab-button.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: var(--primary-accent-color); }
+      .tab-content { display: none; }
+      .tab-content.active { display: block; }
+      
+      #camera-feed { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3; }
+      #capture-canvas { display: none; }
+
+      .palette-container{
+        position: relative;
+        margin-top:8px; padding:10px; background-color:var(--input-background); border-radius:8px; 
+        min-height:50px; text-align:center;
+      }
+      .palette{position:relative; margin-top:8px; cursor:pointer; padding:5px; border-radius:5px; transition: background-color 0.2s; text-align:left;}
+      .palette:hover{ background-color: var(--border-color); }
+      .palette h4{margin:0 0 5px 0;font-size:0.9em;opacity:0.8;}
+      .swatches{display:flex;gap:5px;}
+      .swatch{width:25px;height:25px;border-radius:50%;border:1px solid var(--border-color);}
+      .checkmark{
+        display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); 
+        font-size:1.5em; color: var(--checkmark-color);
+        transition: color 0.3s;
+      }
+      .palette.selected .checkmark{display:block;}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>WHATTHEFIT</h1>
+
+      <div class="theme-switcher">
+        <span>Theme:</span>
+        <button id="light-mode-btn" class="theme-button">Light</button>
+        <button id="dark-mode-btn" class="theme-button">Dark</button>
+        <div class="color-input-wrapper">
+          <span>Accent:</span>
+          <label class="color-picker-label" id="accent-color-preview" style="background-color: #000000;">
+            <input type="color" id="accent-color-picker" value="#000000">
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Buttons -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="0">Live Fit Check</button>
+        <button class="tab-button" data-tab="1">Your Daily Outfits</button>
+        <button class="tab-button" data-tab="2">Fashion Concept</button>
+      </div>
+
+      <!-- Live Fit Check Panel -->
+      <div id="tab-content-0" class="tab-content active">
+        <div class="feature-container">
+          <div class="control-panel">
+            <div id="feature0-inputs" class="feature">
+              <h2>Live Fit Check</h2>
+              <video id="camera-feed" playsinline></video>
+              <canvas id="capture-canvas"></canvas>
+              <div class="button-group" style="justify-content: center; margin-top: 15px;">
+                <button id="start-camera" data-original-text="Start Camera">Start Camera</button>
+                <button id="capture-image" data-original-text="Analyze Outfit" disabled>Analyze Outfit</button>
+              </div>
+            </div>
+          </div>
+          <div class="canvas">
+            <div id="feature0-output" class="feature output-feature">
+              <div id="output0" class="output">Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Your Daily Outfits Panel -->
+      <div id="tab-content-1" class="tab-content">
+        <div class="feature-container">
+          <div class="control-panel">
+            <div id="feature1-inputs" class="feature">
+              <h2>Your Daily Outfits</h2>
+              <label for="style1">Style</label>
+              <select id="style1">
+                <option>Minimalist</option><option>Casual</option><option>Sporty</option><option>Gothic</option>
+                <option>Classic</option><option>Punk</option><option>Futuristic</option><option>Y2K</option>
+                <option>Formal</option><option>Vintage</option><option>Streetwear</option><option>Bohemia</option>
+              </select>
+              <label>Garment Type</label>
+              <div class="checkbox-container">
+                <div class="checkbox-group" id="garmentType1">
+                  <label><input type="checkbox" value="Blazer">Blazer</label><label><input type="checkbox" value="Dress">Dress</label>
+                  <label><input type="checkbox" value="Skirt">Skirt</label><label><input type="checkbox" value="Trousers">Trousers</label>
+                  <label><input type="checkbox" value="Jumpsuit">Jumpsuit</label><label><input type="checkbox" value="Hoodie">Hoodie</label>
+                  <label><input type="checkbox" value="Coat">Coat</label><label><input type="checkbox" value="Shirt">Shirt</label>
+                  <label><input type="checkbox" value="T-Shirt">T-Shirt</label><label><input type="checkbox" value="Gown">Gown</label>
+                  <label><input type="checkbox" value="Set">Set</label><label><input type="checkbox" value="Shoes">Shoes</label>
+                </div>
+              </div>
+              <label for="bodyShape1">Body Shape</label>
+              <select id="bodyShape1">
+                <option>Hourglass</option><option>Apple</option><option>Pear (Triangle)</option>
+                <option>Rectangle (Straight)</option><option>Inverted Triangle</option>
+              </select>
+              <label for="occasion1">Occasion</label>
+              <select id="occasion1">
+                <option>Casual</option><option>Formal</option><option>Performance</option><option>Editorial</option>
+              </select>
+              <label for="color1">Color</label>
+              <div class="color-selection-wrapper">
+                <label class="color-picker-label" id="color-preview1" style="background-color: #000000;">
+                    <input type="color" id="color1" value="#000000">
+                </label>
+              </div>
+              <div id="palette-container1" class="palette-container">
+                  <button id="ok-color1" class="palette-generate-button">Generate Palettes</button>
+              </div>
+            </div>
+          </div>
+          <div class="canvas">
+            <div id="feature1-output" class="feature output-feature">
+              <div class="button-group">
+                  <button id="generate1" data-original-text="Generate">Generate</button>
+                  <button id="expand1" data-original-text="Expand" disabled>Expand</button>
+                  <button id="mutate1" data-original-text="Mutate" disabled>Mutate</button>
+                  <button id="copy1">Copy</button>
+                  <button id="export1">Export</button>
+                  <button id="clear1">Clear</button>
+              </div>
+              <div id="output1" class="output"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fashion Concept Panel -->
+      <div id="tab-content-2" class="tab-content">
+        <div class="feature-container">
+          <div class="control-panel">
+            <div id="feature2-inputs" class="feature">
+              <h2>Fashion Concept</h2>
+               <label for="style2">Style</label>
+              <select id="style2">
+                <option>Minimalist</option><option>Casual</option><option>Sporty</option><option>Gothic</option>
+                <option>Classic</option><option>Punk</option><option>Futuristic</option><option>Y2K</option>
+                <option>Formal</option><option>Vintage</option><option>Streetwear</option><option>Bohemia</option>
+              </select>
+              <label>Garment Type</label>
+              <div class="checkbox-container">
+                <div class="checkbox-group" id="garmentType2">
+                  <label><input type="checkbox" value="Blazer">Blazer</label><label><input type="checkbox" value="Dress">Dress</label>
+                  <label><input type="checkbox" value="Skirt">Skirt</label><label><input type="checkbox" value="Trousers">Trousers</label>
+                  <label><input type="checkbox" value="Jumpsuit">Jumpsuit</label><label><input type="checkbox" value="Hoodie">Hoodie</label>
+                  <label><input type="checkbox" value="Coat">Coat</label><label><input type="checkbox" value="Shirt">Shirt</label>
+                  <label><input type="checkbox" value="T-Shirt">T-Shirt</label><label><input type="checkbox" value="Gown">Gown</label>
+                  <label><input type="checkbox" value="Set">Set</label><label><input type="checkbox" value="Shoes">Shoes</label>
+                </div>
+              </div>
+              <label for="color2">Color</label>
+              <div class="color-selection-wrapper">
+                <label class="color-picker-label" id="color-preview2" style="background-color: #000000;">
+                    <input type="color" id="color2" value="#000000">
+                </label>
+              </div>
+              <div id="palette-container2" class="palette-container">
+                  <button id="ok-color2" class="palette-generate-button">Generate Palettes</button>
+              </div>
+              <label for="climate2">Climate</label>
+              <select id="climate2">
+                <option>Hot / Humid</option><option>Mild</option><option>Cool / Cold</option>
+                <option>Rain</option><option>Don’t mind, as long as the fit is cool</option>
+              </select>
+            </div>
+          </div>
+          <div class="canvas">
+            <div id="feature2-output" class="feature output-feature">
+              <div class="button-group">
+                  <button id="generate2" data-original-text="Generate">Generate</button>
+                  <button id="expand2" data-original-text="Expand" disabled>Expand</button>
+                  <button id="mutate2" data-original-text="Mutate" disabled>Mutate</button>
+                  <button id="copy2">Copy</button>
+                  <button id="export2">Export</button>
+                  <button id="clear2">Clear</button>
+              </div>
+              <div id="output2" class="output"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      const featureStates = { '0': {}, '1': { lastConcept: '', selectedPalette: '' }, '2': { lastConcept: '', selectedPalette: '' } };
+      
+      async function callProxy(prompt, outputEl, btnEl) {
+        outputEl.innerHTML = 'Generating...';
+        if(btnEl) { btnEl.disabled = true; btnEl.textContent = 'Generating...'; }
+        try {
+          const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data?.error || 'API error');
+          const text = data?.text || 'No content generated.';
+          const cleanHtml = text.replace(/\*\*/g, '').replace(/[\*#\-]/g, '').replace(/\n/g, '<br>');
+          outputEl.innerHTML = cleanHtml;
+          return text;
+        } catch (e) {
+          outputEl.textContent = `Error: ${e.message}`; return null;
+        } finally {
+          if(btnEl) { btnEl.disabled = false; btnEl.textContent = btnEl.dataset.originalText; }
+        }
+      }
+
+      async function generatePalettes(hexColor, containerEl, okBtn) {
+          okBtn.disabled = true; okBtn.textContent = 'Generating...';
+          const prompt = {
+            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B"). Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
+          };
+          try {
+              const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
+              const data = await r.json();
+              if (!r.ok) throw new Error(data?.error || 'API error');
+              const jsonStringMatch = data.text.match(/\{.*\}/s);
+              if (!jsonStringMatch) throw new Error("Invalid JSON from AI.");
+              const palettesData = JSON.parse(jsonStringMatch[0]);
+              containerEl.innerHTML = '<h4>Click a palette to use it:</h4>';
+              palettesData.palettes.forEach(p => {
+                  const paletteDiv = document.createElement('div');
+                  paletteDiv.className = 'palette';
+                  paletteDiv.title = `Use the ${p.theme} palette`;
+                  paletteDiv.innerHTML = `<h4>${p.theme}:</h4><div class="swatches">${p.colors.map(c => `<div class="swatch" title="${c.name}" style="background-color:${c.hex};"></div>`).join('')}</div><span class="checkmark">✔</span>`;
+                  paletteDiv.onclick = () => {
+                      const featureId = containerEl.id.replace('palette-container', '');
+                      featureStates[featureId].selectedPalette = `${p.theme} palette of ${p.colors.map(c=>c.name).join(', ')}`;
+                      document.querySelectorAll(`#palette-container${featureId} .palette`).forEach(el => el.classList.remove('selected'));
+                      paletteDiv.classList.add('selected');
+};
+                  containerEl.appendChild(paletteDiv);
+              });
+          } catch (e) {
+              containerEl.innerHTML = `<h4>Error generating palettes. Please try again.</h4>`; console.error(e);
+          } finally {
+              containerEl.prepend(okBtn); okBtn.disabled = false; okBtn.textContent = 'Generate Palettes';
+          }
+      }
+      function clearFeature(id) {
+        featureStates[id] = { lastConcept: '', selectedPalette: '' };
+        document.getElementById(`output${id}`).innerHTML = '';
+        const paletteContainer = document.getElementById(`palette-container${id}`);
+        if (paletteContainer) {
+            const okBtn = document.getElementById(`ok-color${id}`);
+            paletteContainer.innerHTML = '';
+            paletteContainer.appendChild(okBtn);
+        }
+        document.querySelectorAll(`#garmentType${id} input[type="checkbox"]`).forEach(cb => cb.checked = false);
+        document.querySelectorAll(`#feature${id}-inputs select, #feature${id}-output select`).forEach(s => s.selectedIndex = 0);
+        document.getElementById(`expand${id}`).disabled = true;
+        document.getElementById(`mutate${id}`).disabled = true;
+      }
+      
+      // --- TAB SWITCHING LOGIC ---
+      const tabs = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          tabContents.forEach(c => c.classList.remove('active'));
+          document.getElementById(`tab-content-${tab.dataset.tab}`).classList.add('active');
+        });
+      });
+
+      // --- CAMERA FEATURE ---
+      const videoEl = document.getElementById('camera-feed');
+      const canvasEl = document.getElementById('capture-canvas');
+      const startBtn = document.getElementById('start-camera');
+      const captureBtn = document.getElementById('capture-image');
+      const output0 = document.getElementById('output0');
+      let stream;
+
+      startBtn.addEventListener('click', async () => {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          videoEl.srcObject = null;
+          startBtn.textContent = 'Start Camera';
+          captureBtn.disabled = true;
+          stream = null;
+          return;
+        }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+          videoEl.srcObject = stream;
+          await videoEl.play();
+          startBtn.textContent = 'Stop Camera';
+          captureBtn.disabled = false;
+        } catch (err) {
+          output0.textContent = `Error accessing camera: ${err.message}`;
+          console.error("Camera error:", err);
+        }
+      });
+
+      captureBtn.addEventListener('click', async () => {
+        canvasEl.width = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
+        const context = canvasEl.getContext('2d');
+        context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+        const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
+        
+        const prompt = {
+          text: "Describe the outfit in this image and suggest 2 specific styling tweaks to elevate it. Be direct and encouraging, like a cool friend. Example: 'You’re rocking a soft Y2K look — try adding silver metallics and a bucket hat to match the futuristic edge 💫.'",
+          image: base64ImageData
+        };
+        await callProxy(prompt, output0, captureBtn);
+      });
+
+      // --- YDO FEATURE (ID 1) ---
+      document.getElementById('generate1').addEventListener('click', async (ev) => {
+        const style = document.getElementById('style1').value;
+        const garmentTypes = Array.from(document.querySelectorAll('#garmentType1 input:checked')).map(el => el.value).join(', ');
+        const bodyShape = document.getElementById('bodyShape1').value;
+        const occasion = document.getElementById('occasion1').value;
+        const color = document.getElementById('color1').value;
+        const paletteInfo = featureStates['1'].selectedPalette ? `using the selected ${featureStates['1'].selectedPalette}` : '';
+        const prompt = { text: `As a friendly stylist, give a direct outfit recommendation. No fluff. Use simple B2-C1 English. Structure: 1. The Vibe. 2. What to Wear. 3. Body Shape Tip. Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`};
+        const result = await callProxy(prompt, document.getElementById('output1'), ev.currentTarget);
+        if (result) { featureStates['1'].lastConcept = result; document.getElementById('expand1').disabled = false; document.getElementById('mutate1').disabled = false; }
+      });
+      document.getElementById('expand1').addEventListener('click', (ev) => callProxy({text: `Expand the previous outfit idea (~800 words) with more options for each piece (Top, Bottom, Shoes, Accessories). Previous Idea: "${featureStates['1'].lastConcept}"`}, document.getElementById('output1'), ev.currentTarget));
+      document.getElementById('mutate1').addEventListener('click', async (ev) => {
+        const result = await callProxy({text: `Mutate the previous outfit idea for a different vibe (~300 words). Original Idea: "${featureStates['1'].lastConcept}"`}, document.getElementById('output1'), ev.currentTarget);
+        if (result) { featureStates['1'].lastConcept = result; }
+      });
+      
+      // --- FASHION CONCEPT FEATURE (ID 2) ---
+      document.getElementById('generate2').addEventListener('click', async (ev) => {
+        const style = document.getElementById('style2').value;
+        const garmentTypes = Array.from(document.querySelectorAll('#garmentType2 input:checked')).map(el => el.value).join(', ');
+        const color = document.getElementById('color2').value;
+        const climate = document.getElementById('climate2').value;
+        const paletteInfo = featureStates['2'].selectedPalette ? `using the selected ${featureStates['2'].selectedPalette}` : '';
+        const prompt = { text: `As an innovative fashion strategist, your response must be direct and actionable. No fluff. The core concept MUST be innovative and solve a real-world problem. Generate a concise Fashion Concept (~300 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.` };
+        const result = await callProxy(prompt, document.getElementById('output2'), ev.currentTarget);
+        if (result) { featureStates['2'].lastConcept = result; document.getElementById('expand2').disabled = false; document.getElementById('mutate2').disabled = false; }
+      });
+      document.getElementById('expand2').addEventListener('click', (ev) => callProxy({text: `Expand on the previous concept with more detail (~800 words), focusing on actionable specifics for Fabric, Construction, and Warnings. Previous Concept: "${featureStates['2'].lastConcept}"`}, document.getElementById('output2'), ev.currentTarget));
+      document.getElementById('mutate2').addEventListener('click', async (ev) => {
+        const result = await callProxy({text: `Mutate this concept into a new, innovative idea with a different angle (~300 words). Original Concept: "${featureStates['2'].lastConcept}"`}, document.getElementById('output2'), ev.currentTarget);
+        if (result) { featureStates['2'].lastConcept = result; }
+      });
+      
+      // --- Universal UI for YDO and FC ---
+      ['1', '2'].forEach(id => {
+        document.getElementById(`copy${id}`).addEventListener('click', () => navigator.clipboard.writeText(document.getElementById(`output${id}`).textContent).then(() => alert('Copied!')));
+        document.getElementById(`export${id}`).addEventListener('click', () => {
+          const blob = new Blob([document.getElementById(`output${id}`).textContent], { type: 'text/plain' });
+          const a = document.createElement('a');
+          a.download = id === '1' ? 'daily_outfit.txt' : 'fashion_concept.txt';
+          a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+        });
+        document.getElementById(`clear${id}`).addEventListener('click', () => clearFeature(id));
+        const colorInput = document.getElementById(`color${id}`);
+        const colorPreview = document.getElementById(`color-preview${id}`);
+        const okColorBtn = document.getElementById(`ok-color${id}`);
+        const paletteContainer = document.getElementById(`palette-container${id}`);
+        colorInput.addEventListener('input', () => { colorPreview.style.backgroundColor = colorInput.value; paletteContainer.style.display = 'block'; });
+        okColorBtn.addEventListener('click', () => { 
+            generatePalettes(colorInput.value, paletteContainer, okColorBtn);
+        });
+      });
+      
+      // --- Theme engine ---
+      const docEl = document.documentElement;
+      const accentPicker = document.getElementById('accent-color-picker');
+      const accentPreview = document.getElementById('accent-color-preview');
+      function setTheme(t){ docEl.setAttribute('data-theme', t); localStorage.setItem('whatthefit_theme', t); }
+      function setAccentColor(c){
+        docEl.style.setProperty('--primary-accent-color', c);
+        const hoverColor = c.length === 7 ? c + 'BF' : c; 
+        docEl.style.setProperty('--primary-accent-hover', hoverColor);
+        docEl.style.setProperty('--checkmark-color', c);
+        accentPreview.style.backgroundColor = c;
+        localStorage.setItem('whatthefit_accent', c);
+      }
+      document.getElementById('light-mode-btn').addEventListener('click', ()=>setTheme('light'));
+      document.getElementById('dark-mode-btn').addEventListener('click', ()=>setTheme('dark'));
+      accentPicker.addEventListener('input', (e)=>setAccentColor(e.target.value));
+
+      const savedTheme = localStorage.getItem('whatthefit_theme') || 'light';
+      const savedAccent = localStorage.getItem('whatthefit_accent') || '#000000';
+      setTheme(savedTheme); 
+      setAccentColor(savedAccent); 
+      accentPicker.value = savedAccent;
+
+      // --- DEFINITIVE HEIGHT SYNC LOGIC ---
+      const syncAllHeights = () => {
+        if (window.innerWidth <= 900) {
+          ['0', '1', '2'].forEach(id => {
+            const output = document.getElementById(`feature${id}-output`);
+            if (output) output.style.height = 'auto';
+          });
+          return;
+        }
+        ['0', '1', '2'].forEach(id => {
+            const inputs = document.getElementById(`feature${id}-inputs`);
+            const output = document.getElementById(`feature${id}-output`);
+            if (inputs && output) {
+              output.style.height = `${inputs.offsetHeight}px`;
+            }
+        });
+      };
+      
+      // Use ResizeObserver for robust height synchronization
+      ['0', '1', '2'].forEach(id => {
+        const inputPanel = document.getElementById(`feature${id}-inputs`);
+        if (inputPanel) {
+          new ResizeObserver(syncAllHeights).observe(inputPanel);
+        }
+      });
+      window.addEventListener('load', syncAllHeights);
+      window.addEventListener('resize', syncAllHeights);
+    </script>
+  </body>
+</html>
