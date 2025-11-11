@@ -80,11 +80,10 @@
         padding:15px; background:var(--card-background); border-radius:8px; white-space:pre-wrap;
         border:1px solid var(--border-color); line-height:1.6; font-size:1em;
       }
-
-      /* --- UPDATED TAB STYLES --- */
+      
       .tabs { 
         display: flex; 
-        justify-content: center; /* Center the tabs */
+        justify-content: center;
         gap: 10px; 
         margin-bottom: 20px; 
         border-bottom: 2px solid var(--border-color); 
@@ -96,7 +95,16 @@
       .tab-content.active { display: block; }
       
       /* --- CAMERA & LABEL STYLES --- */
-      .camera-container { position: relative; width: 100%; }
+      /* NEW: Style for the camera's parent feature block */
+      #feature0-inputs {
+        align-items: center; /* Center content horizontally */
+      }
+      /* NEW: Larger camera container */
+      .camera-container { 
+        position: relative; 
+        width: 100%;
+        max-width: 640px; /* Increase max width for a bigger preview */
+      }
       #camera-feed, #capture-canvas {
         width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3;
         transform: scaleX(-1); /* Mirror the camera */
@@ -108,7 +116,7 @@
         display: none; justify-content: center; align-items: center;
         font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.9);
         -webkit-text-stroke: 2px black; text-stroke: 2px black;
-        z-index: 10; transform: scaleX(-1); /* Un-mirror the text */
+        z-index: 10; transform: scaleX(-1);
       }
       #label-overlay {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -155,35 +163,19 @@
         font-weight: normal;
       }
       #timer-controls input[type="radio"] {
-        appearance: none;
-        -webkit-appearance: none;
-        margin: 0;
-        width: 20px;
-        height: 20px;
-        border: 2px solid var(--border-color);
-        border-radius: 50%;
-        transition: all 0.2s;
-        cursor: pointer;
+        appearance: none; -webkit-appearance: none; margin: 0; width: 20px;
+        height: 20px; border: 2px solid var(--border-color); border-radius: 50%;
+        transition: all 0.2s; cursor: pointer;
       }
       #timer-controls input[type="radio"]::after {
-        content: '';
-        display: block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        position: relative;
-        top: 50%;
-        left: 50%;
+        content: ''; display: block; width: 10px; height: 10px; border-radius: 50%;
+        position: relative; top: 50%; left: 50%;
         transform: translate(-50%, -50%) scale(0);
         background-color: var(--primary-accent-color);
         transition: transform 0.2s ease-in-out;
       }
-      #timer-controls input[type="radio"]:checked {
-        border-color: var(--primary-accent-color);
-      }
-      #timer-controls input[type="radio"]:checked::after {
-        transform: translate(-50%, -50%) scale(1);
-      }
+      #timer-controls input[type="radio"]:checked { border-color: var(--primary-accent-color); }
+      #timer-controls input[type="radio"]:checked::after { transform: translate(-50%, -50%) scale(1); }
 
       .palette-container{
         position: relative;
@@ -391,26 +383,62 @@
     <script type="module">
       const featureStates = { '0': {}, '1': { lastConcept: '', selectedPalette: '' }, '2': { lastConcept: '', selectedPalette: '' } };
       
+      // --- NEW: Helper function for retries with exponential backoff ---
+      function sleep(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      // --- UPDATED: callProxy function with retry logic ---
       async function callProxy(prompt, outputEl, btnEl) {
-        if(outputEl) outputEl.innerHTML = 'Generating...';
-        if(btnEl) { btnEl.disabled = true; btnEl.textContent = 'Generating...'; }
-        try {
-          const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
-          const data = await r.json();
-          if (!r.ok) throw new Error(data?.error || 'API error');
-          const text = data?.text || 'No content generated.';
-          if(outputEl) {
-            const cleanHtml = text.replace(/\*\*/g, '').replace(/[\*#\-]/g, '').replace(/\n/g, '<br>');
-            outputEl.innerHTML = cleanHtml;
-          }
-          return text;
-        } catch (e) {
-          if(outputEl) outputEl.textContent = `Error: ${e.message}`; 
-          return null;
-        } finally {
-          if(btnEl) { btnEl.disabled = false; btnEl.textContent = btnEl.dataset.originalText; }
+        if (outputEl) outputEl.innerHTML = 'Generating...';
+        if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Generating...'; }
+        
+        const maxRetries = 3;
+        let attempt = 0;
+
+        while (attempt < maxRetries) {
+            try {
+                const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
+
+                if (r.status === 503 && attempt < maxRetries - 1) {
+                    attempt++;
+                    const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s
+                    if (outputEl) outputEl.innerHTML = `Model is busy. Retrying in ${delay / 1000} seconds...`;
+                    await sleep(delay);
+                    continue; // Go to the next iteration of the loop
+                }
+
+                const data = await r.json();
+                if (!r.ok) throw new Error(data?.error || `API error with status ${r.status}`);
+                
+                const text = data?.text || 'No content generated.';
+                if (outputEl) {
+                    const cleanHtml = text.replace(/\*\*/g, '').replace(/[\*#\-]/g, '').replace(/\n/g, '<br>');
+                    outputEl.innerHTML = cleanHtml;
+                }
+                return text; // Success, exit the function
+
+            } catch (e) {
+                if (attempt >= maxRetries - 1) { // If this was the last attempt
+                    if (outputEl) outputEl.textContent = `Error: ${e.message}`;
+                    console.error("Final attempt failed:", e);
+                    return null; // Exit function with null
+                }
+            }
+        }
+        
+        // This part should ideally not be reached, but as a fallback:
+        if (outputEl) outputEl.textContent = 'Error: All retry attempts failed.';
+        return null;
+
+        // The finally block is moved to ensure it runs only once after all attempts.
+        // We will manage the button state within the loop or after success/failure.
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = btnEl.dataset.originalText;
         }
       }
+
 
       async function generatePalettes(hexColor, containerEl, okBtn) {
           okBtn.disabled = true; okBtn.textContent = 'Generating...';
@@ -418,11 +446,13 @@
             text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B"). Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
           };
           try {
-              const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
-              const data = await r.json();
-              if (!r.ok) throw new Error(data?.error || 'API error');
-              const jsonStringMatch = data.text.match(/\{.*\}/s);
+              // Using callProxy for this as well to benefit from retries
+              const resultText = await callProxy(prompt, null, okBtn);
+              if (!resultText) throw new Error("AI did not return palette data.");
+
+              const jsonStringMatch = resultText.match(/\{.*\}/s);
               if (!jsonStringMatch) throw new Error("Invalid JSON from AI.");
+              
               const palettesData = JSON.parse(jsonStringMatch[0]);
               containerEl.innerHTML = '<h4>Click a palette to use it:</h4>';
               palettesData.palettes.forEach(p => {
@@ -461,7 +491,6 @@
         if(mutateBtn) mutateBtn.disabled = true;
       }
       
-      // --- TAB SWITCHING LOGIC ---
       const tabs = document.querySelectorAll('.tab-button');
       const tabContents = document.querySelectorAll('.tab-content');
       tabs.forEach(tab => {
@@ -473,7 +502,6 @@
         });
       });
 
-      // --- CAMERA FEATURE ---
       const videoEl = document.getElementById('camera-feed');
       const canvasEl = document.getElementById('capture-canvas');
       const startBtn = document.getElementById('start-camera');
@@ -539,7 +567,6 @@
                 if(!item.item || !item.point) return;
                 const labelDiv = document.createElement('div');
                 labelDiv.className = 'outfit-label';
-                // Adjust x-coordinate for mirrored view
                 labelDiv.style.left = `${100 - item.point.x}%`;
                 labelDiv.style.top = `${item.point.y}%`;
                 labelDiv.innerHTML = `<div class="dot"></div><div class="line"></div><div class="text">${item.item}</div>`;
@@ -555,8 +582,7 @@
         captureBtn.disabled = true;
         startBtn.disabled = true;
 
-        const performCapture = () => {
-            // Freeze frame
+        const performCapture = async () => {
             canvasEl.width = videoEl.videoWidth;
             canvasEl.height = videoEl.videoHeight;
             const context = canvasEl.getContext('2d');
@@ -566,14 +592,20 @@
             startBtn.textContent = 'Start Over';
             startBtn.disabled = false;
             
-            // Analyze
             const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             const stylePrompt = {
               text: "Describe the outfit in this image and suggest 2 specific styling tweaks to elevate it. Be direct and encouraging, like a cool friend. Example: 'You’re rocking a soft Y2K look — try adding silver metallics and a bucket hat to match the futuristic edge 💫.'",
               image: base64ImageData
             };
-            callProxy(stylePrompt, output0, captureBtn);
-            analyzeAndDrawLabels(base64ImageData);
+            
+            // Run both AI calls concurrently for speed
+            await Promise.all([
+              callProxy(stylePrompt, output0, captureBtn),
+              analyzeAndDrawLabels(base64ImageData)
+            ]);
+
+            // Re-enable the capture button once all analyses are complete
+            captureBtn.disabled = false; 
         };
         
         if (timerValue > 0) {
@@ -594,43 +626,46 @@
         }
       });
 
-      // --- YDO FEATURE (ID 1) ---
-      document.getElementById('generate1').addEventListener('click', async (ev) => {
-        const style = document.getElementById('style1').value;
-        const garmentTypes = Array.from(document.querySelectorAll('#garmentType1 input:checked')).map(el => el.value).join(', ');
-        const bodyShape = document.getElementById('bodyShape1').value;
-        const occasion = document.getElementById('occasion1').value;
-        const color = document.getElementById('color1').value;
-        const paletteInfo = featureStates['1'].selectedPalette ? `using the selected ${featureStates['1'].selectedPalette}` : '';
-        const prompt = { text: `As a friendly stylist, give a direct outfit recommendation. No fluff. Use simple B2-C1 English. Structure: 1. The Vibe. 2. What to Wear. 3. Body Shape Tip. Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`};
-        const result = await callProxy(prompt, document.getElementById('output1'), ev.currentTarget);
-        if (result) { featureStates['1'].lastConcept = result; document.getElementById('expand1').disabled = false; document.getElementById('mutate1').disabled = false; }
-      });
-      document.getElementById('expand1').addEventListener('click', (ev) => callProxy({text: `Expand the previous outfit idea (~800 words) with more options for each piece (Top, Bottom, Shoes, Accessories). Previous Idea: "${featureStates['1'].lastConcept}"`}, document.getElementById('output1'), ev.currentTarget));
-      document.getElementById('mutate1').addEventListener('click', async (ev) => {
-        const result = await callProxy({text: `Mutate the previous outfit idea for a different vibe (~300 words). Original Idea: "${featureStates['1'].lastConcept}"`}, document.getElementById('output1'), ev.currentTarget);
-        if (result) { featureStates['1'].lastConcept = result; }
-      });
-      
-      // --- FASHION CONCEPT FEATURE (ID 2) ---
-      document.getElementById('generate2').addEventListener('click', async (ev) => {
-        const style = document.getElementById('style2').value;
-        const garmentTypes = Array.from(document.querySelectorAll('#garmentType2 input:checked')).map(el => el.value).join(', ');
-        const color = document.getElementById('color2').value;
-        const climate = document.getElementById('climate2').value;
-        const paletteInfo = featureStates['2'].selectedPalette ? `using the selected ${featureStates['2'].selectedPalette}` : '';
-        const prompt = { text: `As an innovative fashion strategist, your response must be direct and actionable. No fluff. The core concept MUST be innovative and solve a real-world problem. Generate a concise Fashion Concept (~300 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.` };
-        const result = await callProxy(prompt, document.getElementById('output2'), ev.currentTarget);
-        if (result) { featureStates['2'].lastConcept = result; document.getElementById('expand2').disabled = false; document.getElementById('mutate2').disabled = false; }
-      });
-      document.getElementById('expand2').addEventListener('click', (ev) => callProxy({text: `Expand on the previous concept with more detail (~800 words), focusing on actionable specifics for Fabric, Construction, and Warnings. Previous Concept: "${featureStates['2'].lastConcept}"`}, document.getElementById('output2'), ev.currentTarget));
-      document.getElementById('mutate2').addEventListener('click', async (ev) => {
-        const result = await callProxy({text: `Mutate this concept into a new, innovative idea with a different angle (~300 words). Original Concept: "${featureStates['2'].lastConcept}"`}, document.getElementById('output2'), ev.currentTarget);
-        if (result) { featureStates['2'].lastConcept = result; }
-      });
-      
-      // --- Universal UI for YDO and FC ---
       ['1', '2'].forEach(id => {
+        document.getElementById(`generate${id}`).addEventListener('click', async (ev) => {
+            const style = document.getElementById(`style${id}`).value;
+            const garmentTypes = Array.from(document.querySelectorAll(`#garmentType${id} input:checked`)).map(el => el.value).join(', ');
+            const color = document.getElementById(`color${id}`).value;
+            const paletteInfo = featureStates[id].selectedPalette ? `using the selected ${featureStates[id].selectedPalette}` : '';
+            let text;
+
+            if (id === '1') {
+                const bodyShape = document.getElementById('bodyShape1').value;
+                const occasion = document.getElementById('occasion1').value;
+                text = `As a friendly stylist, give a direct outfit recommendation. No fluff. Use simple B2-C1 English. Structure: 1. The Vibe. 2. What to Wear. 3. Body Shape Tip. Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
+            } else {
+                const climate = document.getElementById('climate2').value;
+                text = `As an innovative fashion strategist, your response must be direct and actionable. No fluff. The core concept MUST be innovative and solve a real-world problem. Generate a concise Fashion Concept (~300 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
+            }
+            
+            const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget);
+            if (result) {
+                featureStates[id].lastConcept = result;
+                document.getElementById(`expand${id}`).disabled = false;
+                document.getElementById(`mutate${id}`).disabled = false;
+            }
+        });
+
+        document.getElementById(`expand${id}`).addEventListener('click', (ev) => {
+            const text = id === '1'
+                ? `Expand the previous outfit idea (~800 words) with more options for each piece (Top, Bottom, Shoes, Accessories). Previous Idea: "${featureStates[id].lastConcept}"`
+                : `Expand on the previous concept with more detail (~800 words), focusing on actionable specifics for Fabric, Construction, and Warnings. Previous Concept: "${featureStates[id].lastConcept}"`;
+            callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget);
+        });
+
+        document.getElementById(`mutate${id}`).addEventListener('click', async (ev) => {
+            const text = id === '1'
+                ? `Mutate the previous outfit idea for a different vibe (~300 words). Original Idea: "${featureStates[id].lastConcept}"`
+                : `Mutate this concept into a new, innovative idea with a different angle (~300 words). Original Concept: "${featureStates[id].lastConcept}"`;
+            const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget);
+            if (result) { featureStates[id].lastConcept = result; }
+        });
+        
         document.getElementById(`copy${id}`).addEventListener('click', () => navigator.clipboard.writeText(document.getElementById(`output${id}`).textContent).then(() => alert('Copied!')));
         document.getElementById(`export${id}`).addEventListener('click', () => {
           const blob = new Blob([document.getElementById(`output${id}`).textContent], { type: 'text/plain' });
@@ -649,7 +684,6 @@
         });
       });
       
-      // --- Theme engine ---
       const docEl = document.documentElement;
       const accentPicker = document.getElementById('accent-color-picker');
       const accentPreview = document.getElementById('accent-color-preview');
@@ -672,7 +706,6 @@
       setAccentColor(savedAccent); 
       accentPicker.value = savedAccent;
 
-      // --- DEFINITIVE HEIGHT SYNC LOGIC ---
       const syncAllHeights = () => {
         if (window.innerWidth <= 900) {
           ['0', '1', '2'].forEach(id => {
@@ -690,7 +723,6 @@
         });
       };
       
-      // Use ResizeObserver for robust height synchronization
       ['0', '1', '2'].forEach(id => {
         const inputPanel = document.getElementById(`feature${id}-inputs`);
         if (inputPanel) {
