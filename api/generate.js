@@ -21,6 +21,8 @@ export default async function handler(req, res) {
         }
         
         const genAI = new GoogleGenerativeAI(key);
+        // Use a single, modern model that handles both text and vision
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const { text, image } = req.body;
 
@@ -28,24 +30,21 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Text prompt is missing.' });
         }
 
-        let model;
-        let promptParts = [];
+        // Build the prompt parts dynamically
+        const promptParts = [];
 
-        // This is the core logic change:
-        // If an image is present, use the vision model and create a multi-part prompt.
-        // If not, use the standard text model.
         if (image) {
-            model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            promptParts = [
-                { inlineData: { mimeType: 'image/jpeg', data: image } },
-                { text: text },
-            ];
-        } else {
-            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-            promptParts = [{ text: text }];
+            promptParts.push({ inlineData: { mimeType: 'image/jpeg', data: image } });
         }
         
-        const result = await model.generateContent({ contents: [{ parts: promptParts }] });
+        promptParts.push({ text: text });
+        
+        // --- THIS IS THE CRUCIAL FIX ---
+        // The generateContent call now includes `role: "user"`
+        const result = await model.generateContent({
+            contents: [{ role: "user", parts: promptParts }]
+        });
+        
         const responseText = result.response.text();
 
         return res.status(200).json({ text: responseText });
