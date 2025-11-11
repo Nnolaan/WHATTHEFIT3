@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         
         const genAI = new GoogleGenerativeAI(key);
         // Use a single, modern model that handles both text and vision
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
         const { text, image } = req.body;
 
