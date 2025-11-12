@@ -110,7 +110,12 @@
         display: none; justify-content: center; align-items: center;
         font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.9);
         -webkit-text-stroke: 2px black; text-stroke: 2px black;
-        z-index: 10; transform: scaleX(-1); /* FIX: Un-mirror the text */
+        z-index: 10;
+      }
+      /* FIX: Un-mirrors the countdown number text */
+      #countdown-overlay > span {
+        display: inline-block;
+        transform: scaleX(-1);
       }
       #label-overlay {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
@@ -357,11 +362,8 @@
       function toggleInputs(featureId, isDisabled) {
         const inputsContainer = document.getElementById(`feature${featureId}-inputs`);
         if (!inputsContainer) return;
-        
-        const elements = inputsContainer.querySelectorAll('select, input, .palette-generate-button');
-        elements.forEach(el => {
-            el.disabled = isDisabled;
-        });
+        const elements = inputsContainer.querySelectorAll('select, input[type="checkbox"], input[type="color"], .palette-generate-button');
+        elements.forEach(el => { el.disabled = isDisabled; });
       }
 
       async function callProxy(prompt, outputEl, btnEl, featureId) {
@@ -403,7 +405,10 @@
             console.error("API call failed:", e);
             return null;
         } finally {
-            if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.textContent = originalText;
+            }
             if (featureId) toggleInputs(featureId, false);
         }
       }
@@ -570,8 +575,34 @@
             stopBtn.style.display = 'none';
             
             const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
+            // --- UPDATED LIVE FIT CHECK PROMPT ---
             const stylePrompt = {
-              text: "Describe the outfit in this image and suggest 2 specific styling tweaks to elevate it. Be direct and encouraging, like a cool friend. Example: 'You’re rocking a soft Y2K look — try adding silver metallics and a bucket hat to match the futuristic edge 💫.'",
+              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 7-part structure, using the markdown headers as shown.
+
+**1. The Vibe (Mood Summary)**
+A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
+
+**2. Style Formula (Quick Breakdown)**
+A fill-in-the-blanks style breakdown of what you see in the image.
+- Top: [Type, color, fabric, or fit]
+- Bottom: [Type, cut, and texture]
+- Shoes: [Type + color + material]
+- Accessories: [Functional, statement, or minimal pieces]
+
+**3. Body Shape Focus**
+1-2 lines explaining why this outfit works for the visible body shape, focusing on principles.
+
+**4. Color & Texture Tip**
+Explain how colors and fabrics in the outfit interact.
+
+**5. Alternate Options (for Flexibility)**
+Offer 1-2 "switch-up" ideas to elevate or change the vibe of the current outfit.
+
+**6. Care or Comfort Note (optional)**
+A practical tip related to the garments seen.
+
+**7. Why It Works (Summary)**
+A single sentence reinforcing the design logic of the outfit.`,
               image: base64ImageData
             };
             
@@ -583,11 +614,11 @@
         
         if (timerValue > 0) {
             let count = timerValue;
-            countdownOverlay.textContent = count;
+            countdownOverlay.innerHTML = `<span>${count}</span>`; // FIX: Wrap in span
             countdownOverlay.style.display = 'flex';
             const interval = setInterval(() => {
                 count--;
-                countdownOverlay.textContent = count;
+                countdownOverlay.innerHTML = `<span>${count}</span>`; // FIX: Wrap in span
                 if (count <= 0) {
                     clearInterval(interval);
                     countdownOverlay.style.display = 'none';
