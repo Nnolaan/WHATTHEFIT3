@@ -101,11 +101,9 @@
       .camera-container { position: relative; width: 100%; }
       #camera-feed, #capture-canvas {
         width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3;
-        transform: scaleX(-1);
       }
-      #camera-feed { display: block; }
-      #capture-canvas { display: none; }
-      /* FIX: Removed transform from the overlay itself */
+      #camera-feed { transform: scaleX(-1); display: block; }
+      #capture-canvas { display: none; } /* No mirror on canvas by default */
       #countdown-overlay {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         display: none; justify-content: center; align-items: center;
@@ -222,13 +220,15 @@
               <div class="button-group" style="justify-content: center; margin-top: 15px;">
                 <button id="start-camera" data-original-text="Start Camera">Start Camera</button>
                 <button id="stop-camera" data-original-text="Stop Camera" style="display: none;">Stop Camera</button>
+                <button id="upload-image" data-original-text="Upload Picture">Upload Picture</button>
+                <input type="file" id="image-uploader" accept="image/*" style="display:none;" />
                 <button id="capture-image" data-original-text="Analyze Outfit" disabled>Analyze Outfit</button>
               </div>
             </div>
           </div>
           <div class="canvas">
             <div id="feature0-output" class="feature output-feature">
-              <div id="output0" class="output">Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.</div>
+              <div id="output0" class="output">Enable your camera or upload a picture to get styling ideas.</div>
             </div>
           </div>
         </div>
@@ -477,12 +477,14 @@
       const canvasEl = document.getElementById('capture-canvas');
       const startBtn = document.getElementById('start-camera');
       const stopBtn = document.getElementById('stop-camera');
+      const uploadBtn = document.getElementById('upload-image');
+      const imageUploader = document.getElementById('image-uploader');
       const captureBtn = document.getElementById('capture-image');
       const output0 = document.getElementById('output0');
       const timerControls = document.getElementById('timer-controls');
       const countdownOverlay = document.getElementById('countdown-overlay');
       const labelOverlay = document.getElementById('label-overlay');
-      const initialOutputContent = "Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.";
+      const initialOutputContent = "Enable your camera or upload a picture to get styling ideas.";
       let stream = null;
 
       function stopStream() {
@@ -501,6 +503,7 @@
           output0.innerHTML = initialOutputContent;
           startBtn.textContent = "Start Camera";
           stopBtn.style.display = 'none';
+          uploadBtn.style.display = 'inline-block';
           captureBtn.disabled = true;
           timerControls.style.display = 'none';
           countdownOverlay.style.display = 'none';
@@ -512,6 +515,7 @@
             canvasEl.style.display = 'none';
             labelOverlay.innerHTML = '';
             output0.innerHTML = initialOutputContent;
+            uploadBtn.style.display = 'inline-block';
           }
           if (stream) stopStream();
           try {
@@ -520,6 +524,7 @@
               await videoEl.play();
               startBtn.textContent = "Start Over";
               stopBtn.style.display = 'inline-block';
+              uploadBtn.style.display = 'none';
               captureBtn.disabled = false;
               timerControls.style.display = 'flex';
           } catch (err) {
@@ -530,8 +535,41 @@
 
       startBtn.addEventListener('click', startOrResetCamera);
       stopBtn.addEventListener('click', resetCameraToInitialState);
+      uploadBtn.addEventListener('click', () => imageUploader.click());
 
-      async function analyzeAndDrawLabels(base64Image) {
+      imageUploader.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            stopStream(); // Stop live camera if it's running
+            const img = new Image();
+            img.onload = () => {
+                canvasEl.style.transform = 'scaleX(1)'; // Don't mirror uploaded image
+                const context = canvasEl.getContext('2d');
+                canvasEl.width = img.width;
+                canvasEl.height = img.height;
+                context.drawImage(img, 0, 0);
+
+                videoEl.style.display = 'none';
+                canvasEl.style.display = 'block';
+                labelOverlay.innerHTML = '';
+                
+                startBtn.textContent = "Start Over";
+                stopBtn.style.display = 'none';
+                uploadBtn.style.display = 'inline-block';
+                captureBtn.disabled = false;
+                timerControls.style.display = 'none'; // No timer for uploaded images
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        event.target.value = null; // Reset input to allow re-uploading the same file
+      });
+
+
+      async function analyzeAndDrawLabels(base64Image, isMirrored) {
         const prompt = {
             text: `Analyze the provided image. Identify up to 4 main clothing items (e.g., hat, shirt, trousers, shoes). For each item, provide its name and a central coordinate point (x, y) as percentages of the image dimensions. The top-left corner is (0,0). Format as a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
             image: base64Image
@@ -548,7 +586,7 @@
                 if(!item.item || !item.point) return;
                 const labelDiv = document.createElement('div');
                 labelDiv.className = 'outfit-label';
-                labelDiv.style.left = `${100 - item.point.x}%`;
+                labelDiv.style.left = isMirrored ? `${100 - item.point.x}%` : `${item.point.x}%`;
                 labelDiv.style.top = `${item.point.y}%`;
                 labelDiv.innerHTML = `<div class="dot"></div><div class="line"></div><div class="text">${item.item}</div>`;
                 labelOverlay.appendChild(labelDiv);
@@ -557,20 +595,28 @@
       }
 
       captureBtn.addEventListener('click', () => {
-        const timerValue = parseInt(document.querySelector('input[name="timer"]:checked').value, 10);
+        const isFromLiveCamera = videoEl.style.display !== 'none';
+        const timerValue = isFromLiveCamera ? parseInt(document.querySelector('input[name="timer"]:checked').value, 10) : 0;
         
-        const performCapture = async () => {
-            canvasEl.width = videoEl.videoWidth;
-            canvasEl.height = videoEl.videoHeight;
-            const context = canvasEl.getContext('2d');
-            context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-            videoEl.style.display = 'none';
-            canvasEl.style.display = 'block';
+        const performAnalysis = async () => {
+            let base64ImageData;
+            let isMirrored = false;
+
+            if (isFromLiveCamera) {
+                isMirrored = true;
+                canvasEl.style.transform = 'scaleX(-1)'; // Mirror the canvas to match the video
+                const context = canvasEl.getContext('2d');
+                canvasEl.width = videoEl.videoWidth;
+                canvasEl.height = videoEl.videoHeight;
+                context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+                videoEl.style.display = 'none';
+                canvasEl.style.display = 'block';
+                stopStream();
+                stopBtn.style.display = 'none';
+            }
             
-            stopStream();
-            stopBtn.style.display = 'none';
+            base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             
-            const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             const stylePrompt = {
               text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 7-part structure, using markdown-style headers.
 
@@ -601,27 +647,34 @@ A single sentence reinforcing the design logic of the outfit.`,
               image: base64ImageData
             };
             
+            // Disable all buttons during analysis
+            [startBtn, stopBtn, uploadBtn, captureBtn].forEach(btn => btn.disabled = true);
+
             await Promise.all([
               callProxy(stylePrompt, output0, captureBtn, '0'),
-              analyzeAndDrawLabels(base64ImageData)
+              analyzeAndDrawLabels(base64ImageData, isMirrored)
             ]);
+
+            // Re-enable appropriate buttons after analysis
+            startBtn.disabled = false;
+            uploadBtn.disabled = false;
         };
         
         if (timerValue > 0) {
             let count = timerValue;
-            countdownOverlay.textContent = count; // FIX: Use textContent directly
+            countdownOverlay.textContent = count;
             countdownOverlay.style.display = 'flex';
             const interval = setInterval(() => {
                 count--;
-                countdownOverlay.textContent = count; // FIX: Use textContent directly
+                countdownOverlay.textContent = count;
                 if (count <= 0) {
                     clearInterval(interval);
                     countdownOverlay.style.display = 'none';
-                    performCapture();
+                    performAnalysis();
                 }
             }, 1000);
         } else {
-            performCapture();
+            performAnalysis();
         }
       });
 
