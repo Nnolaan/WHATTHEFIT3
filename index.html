@@ -101,9 +101,10 @@
       .camera-container { position: relative; width: 100%; }
       #camera-feed, #capture-canvas {
         width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3;
+        object-fit: contain; /* FIX: Prevents image stretching */
       }
       #camera-feed { transform: scaleX(-1); display: block; }
-      #capture-canvas { display: none; } /* No mirror on canvas by default */
+      #capture-canvas { display: none; }
       #countdown-overlay {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         display: none; justify-content: center; align-items: center;
@@ -390,7 +391,8 @@
                 
                 const text = data.text || 'No content generated.';
                 if (outputEl) {
-                    const cleanHtml = text.replace(/\*\*/g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
+                    // FIX: More robust cleaning of markdown headers
+                    const cleanHtml = text.replace(/\*\*/g, '').replace(/###? ?\d+\. /g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
                     outputEl.innerHTML = cleanHtml;
                 }
                 return text;
@@ -411,7 +413,7 @@
 
       async function generatePalettes(hexColor, containerEl, okBtn) {
           const prompt = {
-            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B"). Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
+            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B").Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
           };
           
           containerEl.innerHTML = '<h4>Generating palettes...</h4>';
@@ -543,10 +545,10 @@
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            stopStream(); // Stop live camera if it's running
+            stopStream();
             const img = new Image();
             img.onload = () => {
-                canvasEl.style.transform = 'scaleX(1)'; // Don't mirror uploaded image
+                canvasEl.style.transform = 'none'; // Don't mirror uploaded image
                 const context = canvasEl.getContext('2d');
                 canvasEl.width = img.width;
                 canvasEl.height = img.height;
@@ -560,12 +562,12 @@
                 stopBtn.style.display = 'none';
                 uploadBtn.style.display = 'inline-block';
                 captureBtn.disabled = false;
-                timerControls.style.display = 'none'; // No timer for uploaded images
+                timerControls.style.display = 'none';
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
-        event.target.value = null; // Reset input to allow re-uploading the same file
+        event.target.value = null;
       });
 
 
@@ -604,7 +606,7 @@
 
             if (isFromLiveCamera) {
                 isMirrored = true;
-                canvasEl.style.transform = 'scaleX(-1)'; // Mirror the canvas to match the video
+                canvasEl.style.transform = 'scaleX(-1)';
                 const context = canvasEl.getContext('2d');
                 canvasEl.width = videoEl.videoWidth;
                 canvasEl.height = videoEl.videoHeight;
@@ -618,36 +620,40 @@
             base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             
             const stylePrompt = {
-              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 7-part structure, using markdown-style headers.
+              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 8-part structure, using markdown-style headers.
 
-**1. The Vibe (Mood Summary)**
+**1. Fit Analysis**
+- Fit Score: [A percentage score with a brief summary, e.g., "89% Balanced – clean lines, good proportion."]
+- Fix-It Tip: [A concrete suggestion for improvement, e.g., "Your jacket length cuts too low; try a cropped layer to extend your legs visually."]
+- Fast Swap Suggestion: [A quick item replacement idea, e.g., "Replace plain tee with something textured to create dimension."]
+
+**2. The Vibe (Mood Summary)**
 A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
 
-**2. Style Formula (Quick Breakdown)**
+**3. Style Formula (Quick Breakdown)**
 A fill-in-the-blanks style breakdown of what you see in the image.
 - Top: [Type, color, fabric, or fit]
 - Bottom: [Type, cut, and texture]
 - Shoes: [Type + color + material]
 - Accessories: [Functional, statement, or minimal pieces]
 
-**3. Body Shape Focus**
+**4. Body Shape Focus**
 1-2 lines explaining why this outfit works for the visible body shape, focusing on principles.
 
-**4. Color & Texture Tip**
+**5. Color & Texture Tip**
 Explain how colors and fabrics in the outfit interact.
 
-**5. Alternate Options (for Flexibility)**
+**6. Alternate Options (for Flexibility)**
 Offer 1-2 "switch-up" ideas to elevate or change the vibe of the current outfit.
 
-**6. Care or Comfort Note (optional)**
+**7. Care or Comfort Note (optional)**
 A practical tip related to the garments seen.
 
-**7. Why It Works (Summary)**
+**8. Why It Works (Summary)**
 A single sentence reinforcing the design logic of the outfit.`,
               image: base64ImageData
             };
             
-            // Disable all buttons during analysis
             [startBtn, stopBtn, uploadBtn, captureBtn].forEach(btn => btn.disabled = true);
 
             await Promise.all([
@@ -655,7 +661,6 @@ A single sentence reinforcing the design logic of the outfit.`,
               analyzeAndDrawLabels(base64ImageData, isMirrored)
             ]);
 
-            // Re-enable appropriate buttons after analysis
             startBtn.disabled = false;
             uploadBtn.disabled = false;
         };
