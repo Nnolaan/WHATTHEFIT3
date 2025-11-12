@@ -105,17 +105,13 @@
       }
       #camera-feed { display: block; }
       #capture-canvas { display: none; }
+      /* FIX: Removed transform from the overlay itself */
       #countdown-overlay {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         display: none; justify-content: center; align-items: center;
         font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.9);
         -webkit-text-stroke: 2px black; text-stroke: 2px black;
         z-index: 10;
-      }
-      /* FIX: Un-mirrors the countdown number text */
-      #countdown-overlay > span {
-        display: inline-block;
-        transform: scaleX(-1);
       }
       #label-overlay {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
@@ -575,9 +571,8 @@
             stopBtn.style.display = 'none';
             
             const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
-            // --- UPDATED LIVE FIT CHECK PROMPT ---
             const stylePrompt = {
-              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 7-part structure, using the markdown headers as shown.
+              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 7-part structure, using markdown-style headers.
 
 **1. The Vibe (Mood Summary)**
 A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
@@ -607,18 +602,18 @@ A single sentence reinforcing the design logic of the outfit.`,
             };
             
             await Promise.all([
-              callProxy(stylePrompt, output0, captureBtn),
+              callProxy(stylePrompt, output0, captureBtn, '0'),
               analyzeAndDrawLabels(base64ImageData)
             ]);
         };
         
         if (timerValue > 0) {
             let count = timerValue;
-            countdownOverlay.innerHTML = `<span>${count}</span>`; // FIX: Wrap in span
+            countdownOverlay.textContent = count; // FIX: Use textContent directly
             countdownOverlay.style.display = 'flex';
             const interval = setInterval(() => {
                 count--;
-                countdownOverlay.innerHTML = `<span>${count}</span>`; // FIX: Wrap in span
+                countdownOverlay.textContent = count; // FIX: Use textContent directly
                 if (count <= 0) {
                     clearInterval(interval);
                     countdownOverlay.style.display = 'none';
@@ -641,7 +636,7 @@ A single sentence reinforcing the design logic of the outfit.`,
             if (id === '1') {
                 const bodyShape = document.getElementById('bodyShape1').value;
                 const occasion = document.getElementById('occasion1').value;
-                text = `You are an expert fashion stylist. Generate a detailed outfit recommendation based on the user's inputs. Your response MUST follow this exact 7-part structure, using the markdown headers as shown.
+                text = `You are an expert fashion stylist. Generate a detailed outfit recommendation based on the user's inputs. Your response MUST follow this exact 7-part structure, using markdown-style headers.
 
 **1. The Vibe (Mood Summary)**
 A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
