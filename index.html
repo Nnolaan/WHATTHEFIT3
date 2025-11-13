@@ -566,8 +566,19 @@
             
             base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             
+            // --- THIS IS THE NEW, SMARTER PROMPT ---
             const stylePrompt = {
-              text: "Analyze the outfit in this image. Provide a brief mood summary and two specific, actionable styling tips to improve the look. Be encouraging and direct. Maximum 150 words.",
+              text: `Analyze the user's outfit in the image. Provide a creative and encouraging style analysis.
+
+HERE IS AN EXAMPLE OF THE PERFECT RESPONSE FORMAT:
+
+"This look has a cool, relaxed vibe! The combination of the oversized jacket and wide-leg jeans creates a really strong, confident silhouette.
+
+Here are a couple of ideas to take it to the next level:
+1.  **Play with Proportions:** Try a more cropped shirt or tuck in your current one to define your waist. This will create a nice contrast with the looser fit of the jacket and jeans.
+2.  **Add a Pop of Metal:** A chunky silver chain necklace or a statement ring would break up the fabric textures and add a modern edge to the look."
+
+NOW, DO THE SAME FOR THE IMAGE PROVIDED. Analyze the outfit and provide two actionable, encouraging tips.`,
               image: base64ImageData
             };
             
