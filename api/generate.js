@@ -20,11 +20,10 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API key is not configured on the server.' });
         }
         
-        // --- THIS IS THE FIX ---
-        // We must specify the stable 'v1' API version for newer models.
-        const genAI = new GoogleGenerativeAI(key, { apiVersion: 'v1' }); 
+        // Use the latest library version to handle API endpoint selection automatically
+        const genAI = new GoogleGenerativeAI(key); 
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const { text, image } = req.body;
 
