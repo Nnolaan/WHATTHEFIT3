@@ -370,9 +370,13 @@
             const data = await response.json();
             if (!response.ok) { throw new Error(data.error || `API error with status ${response.status}`); }
             
-            const text = data.text || 'No content generated.';
+            let text = data.text || 'No content generated.';
+            
+            // Remove conversational filler
+            text = text.replace(/^(Okay, |Sure, |Here is |I can help with that! |I'd be delighted to help!)/i, '').trim();
+
             if (outputEl) {
-                const cleanHtml = text.replace(/\*\*/g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
+                const cleanHtml = text.replace(/\*\*|[\*#\-]/g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
                 outputEl.innerHTML = cleanHtml;
             }
             return text;
@@ -571,7 +575,7 @@
 EXAMPLE:
 "This look has a relaxed, academic vibe! The layers are well-chosen for a smart-casual feel.
 
-Here are a couple of ideas to elevate it:
+Here are a couple of ideas to take it to the next level:
 1. **Define the Waist:** Try tucking in the striped polo shirt to create a clearer waistline. This will add structure and contrast nicely with the looser jacket.
 2. **Elevate the Footwear:** Swap the current shoes for a pair of chunky leather loafers. This will keep the comfort but add a more polished, intentional feel to the whole outfit."
 
@@ -616,19 +620,10 @@ NOW, analyze the provided image and give a similar response: a one-sentence vibe
             if (id === '1') {
                 const bodyShape = document.getElementById('bodyShape1').value;
                 const occasion = document.getElementById('occasion1').value;
-                text = `You are a fashion stylist. Create a direct outfit recommendation based on user inputs. Follow this format:
-1. **The Vibe:** [A short, mood-based summary]
-2. **Style Formula:**
-- Top: [Item description]
-- Bottom: [Item description]
-- Shoes: [Item description]
-- Accessories: [Item description]
-3. **Pro Tip:** [One actionable tip related to body shape or color theory]
-
-Here are the user inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
+                text = `Create a direct, one-paragraph outfit idea for a ${style} look. Mention a top, bottom, shoes, and accessories. Inputs: Garment(s) to include: ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
             } else {
                 const climate = document.getElementById('climate2').value;
-                text = `As an innovative fashion strategist, give a concise and actionable Fashion Concept (~150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
+                text = `Create an innovative, one-paragraph fashion concept. Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
             }
             
             const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
@@ -640,12 +635,12 @@ Here are the user inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'},
         });
 
         document.getElementById(`expand${id}`).addEventListener('click', (ev) => {
-            const text = `Take this fashion idea and expand on it. Provide more detail on materials, construction, and alternative styling options. Make it about 300 words. Here is the original idea: "${featureStates[id].lastConcept}"`;
+            const text = `Expand on this fashion idea in two to three short paragraphs, adding more detail on materials and alternative styling options. Original Idea: "${featureStates[id].lastConcept}"`;
             callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
         });
 
         document.getElementById(`mutate${id}`).addEventListener('click', async (ev) => {
-            const text = `Take this fashion idea and create a new, different version of it. Change the style or core concept. Keep it concise. Here is the original idea: "${featureStates[id].lastConcept}"`;
+            const text = `Create a new, different version of this fashion idea in one short paragraph. Original Idea: "${featureStates[id].lastConcept}"`;
             const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
             if (result) { 
               featureStates[id].lastConcept = result;
