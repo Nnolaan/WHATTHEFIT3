@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     if (!key) return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
 
     const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const { text, image } = req.body;
     if (!text) return res.status(400).json({ error: "Missing text prompt." });
