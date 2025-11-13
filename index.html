@@ -36,8 +36,6 @@
       .output-feature { flex-grow: 1; }
       .output { flex-grow: 1; overflow-y: auto; min-height: 0; }
       
-      @media (max-width: 900px) { .feature-container { flex-direction: column; } }
-
       @media (min-width: 901px) {
         #tab-content-0 .feature-container { flex-direction: row-reverse; }
         #tab-content-0 .control-panel { flex: 1.5; }
@@ -101,7 +99,7 @@
       .camera-container { position: relative; width: 100%; }
       #camera-feed, #capture-canvas {
         width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3;
-        object-fit: contain; /* FIX: Prevents image stretching */
+        object-fit: contain;
       }
       #camera-feed { transform: scaleX(-1); display: block; }
       #capture-canvas { display: none; }
@@ -163,6 +161,20 @@
         font-size:1.5em; color: var(--checkmark-color); transition: color 0.3s;
       }
       .palette.selected .checkmark{display:block;}
+
+      /* --- MOBILE RESPONSIVE STYLES --- */
+      @media (max-width: 600px) {
+        body { padding: 10px; }
+        .container { padding: 15px; }
+        h1 { font-size: 50px; }
+        h2 { font-size: 1.5em; }
+        .feature { padding: 15px; }
+        .feature-container { flex-direction: column; }
+        .tabs { gap: 5px; font-size: 0.9em; }
+        .tab-button { padding: 8px 10px; }
+        .theme-switcher { flex-direction: column; gap: 10px; }
+        #countdown-overlay { font-size: 5rem; }
+      }
     </style>
   </head>
   <body>
@@ -391,7 +403,6 @@
                 
                 const text = data.text || 'No content generated.';
                 if (outputEl) {
-                    // FIX: More robust cleaning of markdown headers
                     const cleanHtml = text.replace(/\*\*/g, '').replace(/###? ?\d+\. /g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
                     outputEl.innerHTML = cleanHtml;
                 }
@@ -504,8 +515,10 @@
           labelOverlay.innerHTML = '';
           output0.innerHTML = initialOutputContent;
           startBtn.textContent = "Start Camera";
+          startBtn.disabled = false;
           stopBtn.style.display = 'none';
           uploadBtn.style.display = 'inline-block';
+          uploadBtn.disabled = false;
           captureBtn.disabled = true;
           timerControls.style.display = 'none';
           countdownOverlay.style.display = 'none';
@@ -526,6 +539,7 @@
               await videoEl.play();
               startBtn.textContent = "Start Over";
               stopBtn.style.display = 'inline-block';
+              stopBtn.disabled = false; // FIX: Explicitly enable stop button
               uploadBtn.style.display = 'none';
               captureBtn.disabled = false;
               timerControls.style.display = 'flex';
@@ -548,7 +562,7 @@
             stopStream();
             const img = new Image();
             img.onload = () => {
-                canvasEl.style.transform = 'none'; // Don't mirror uploaded image
+                canvasEl.style.transform = 'none';
                 const context = canvasEl.getContext('2d');
                 canvasEl.width = img.width;
                 canvasEl.height = img.height;
