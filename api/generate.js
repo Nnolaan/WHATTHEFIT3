@@ -1,16 +1,5 @@
 // This is the entire content for: api/generate.js
-// This version uses Cloudflare AI, which is very stable and has a generous free tier.
-
-// Helper function to convert the image data
-function base64ToArrayBuffer(base64) {
-    const binary_string = atob(base64);
-    const len = binary_string.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
+// This version uses Cloudflare AI and the correct Node.js method for handling images.
 
 export default async function handler(req, res) {
     // Standard headers
@@ -41,12 +30,15 @@ export default async function handler(req, res) {
         let model = '@cf/meta/llama-2-7b-chat-int8'; // Default text model
 
         if (image) {
-            // If there's an image, switch to the vision model and format inputs
+            // If there's an image, switch to the vision model
             model = '@cf/llava-hf/llava-1.5-7b-hf';
-            const imageBuffer = base64ToArrayBuffer(image);
+            
+            // THIS IS THE FIX: Use Node.js Buffer to handle the image data, not a browser function.
+            const imageBuffer = Buffer.from(image, 'base64');
+            
             inputs = {
                 prompt: text,
-                image: [...new Uint8Array(imageBuffer)] // Convert to a plain array of numbers
+                image: [...imageBuffer] // Spread the buffer directly into an array of bytes
             };
         }
 
