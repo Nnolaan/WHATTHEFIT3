@@ -21,8 +21,8 @@ export default async function handler(req, res) {
         }
         
         const genAI = new GoogleGenerativeAI(key);
-        // --- CRUCIAL FIX: Using the stable gemini-1.5-flash-latest model ---
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        // --- CRUCIAL FIX: Using the stable and reliable gemini-1.5-flash-latest model ---
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
         const { text, image } = req.body;
 
