@@ -372,7 +372,7 @@
             
             const text = data.text || 'No content generated.';
             if (outputEl) {
-                const cleanHtml = text.replace(/\*\*/g, '').replace(/###? ?\d+\. /g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
+                const cleanHtml = text.replace(/\*\*/g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
                 outputEl.innerHTML = cleanHtml;
             }
             return text;
@@ -566,19 +566,16 @@
             
             base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             
-            // --- THIS IS THE NEW, SMARTER PROMPT ---
             const stylePrompt = {
-              text: `Analyze the user's outfit in the image. Provide a creative and encouraging style analysis.
+              text: `Analyze the user's outfit in the image. Follow this example format exactly.
+EXAMPLE:
+"This look has a relaxed, academic vibe! The layers are well-chosen for a smart-casual feel.
 
-HERE IS AN EXAMPLE OF THE PERFECT RESPONSE FORMAT:
+Here are a couple of ideas to elevate it:
+1. **Define the Waist:** Try tucking in the striped polo shirt to create a clearer waistline. This will add structure and contrast nicely with the looser jacket.
+2. **Elevate the Footwear:** Swap the current shoes for a pair of chunky leather loafers. This will keep the comfort but add a more polished, intentional feel to the whole outfit."
 
-"This look has a cool, relaxed vibe! The combination of the oversized jacket and wide-leg jeans creates a really strong, confident silhouette.
-
-Here are a couple of ideas to take it to the next level:
-1.  **Play with Proportions:** Try a more cropped shirt or tuck in your current one to define your waist. This will create a nice contrast with the looser fit of the jacket and jeans.
-2.  **Add a Pop of Metal:** A chunky silver chain necklace or a statement ring would break up the fabric textures and add a modern edge to the look."
-
-NOW, DO THE SAME FOR THE IMAGE PROVIDED. Analyze the outfit and provide two actionable, encouraging tips.`,
+NOW, analyze the provided image and give a similar response: a one-sentence vibe summary, followed by exactly two numbered, actionable, and encouraging styling tips.`,
               image: base64ImageData
             };
             
@@ -619,7 +616,16 @@ NOW, DO THE SAME FOR THE IMAGE PROVIDED. Analyze the outfit and provide two acti
             if (id === '1') {
                 const bodyShape = document.getElementById('bodyShape1').value;
                 const occasion = document.getElementById('occasion1').value;
-                text = `Generate a direct outfit recommendation based on these inputs. Structure the response with these headers: 1. The Vibe, 2. Style Formula, 3. Body Shape Tip. Keep it concise (around 150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
+                text = `You are a fashion stylist. Create a direct outfit recommendation based on user inputs. Follow this format:
+1. **The Vibe:** [A short, mood-based summary]
+2. **Style Formula:**
+- Top: [Item description]
+- Bottom: [Item description]
+- Shoes: [Item description]
+- Accessories: [Item description]
+3. **Pro Tip:** [One actionable tip related to body shape or color theory]
+
+Here are the user inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
             } else {
                 const climate = document.getElementById('climate2').value;
                 text = `As an innovative fashion strategist, give a concise and actionable Fashion Concept (~150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
@@ -634,14 +640,18 @@ NOW, DO THE SAME FOR THE IMAGE PROVIDED. Analyze the outfit and provide two acti
         });
 
         document.getElementById(`expand${id}`).addEventListener('click', (ev) => {
-            const text = `Expand on this idea with more detail and options (~400 words): "${featureStates[id].lastConcept}"`;
+            const text = `Take this fashion idea and expand on it. Provide more detail on materials, construction, and alternative styling options. Make it about 300 words. Here is the original idea: "${featureStates[id].lastConcept}"`;
             callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
         });
 
         document.getElementById(`mutate${id}`).addEventListener('click', async (ev) => {
-            const text = `Mutate this idea into a different concept (~150 words): "${featureStates[id].lastConcept}"`;
+            const text = `Take this fashion idea and create a new, different version of it. Change the style or core concept. Keep it concise. Here is the original idea: "${featureStates[id].lastConcept}"`;
             const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
-            if (result) { featureStates[id].lastConcept = result; }
+            if (result) { 
+              featureStates[id].lastConcept = result;
+              document.getElementById(`expand${id}`).disabled = false;
+              document.getElementById(`mutate${id}`).disabled = false;
+            }
         });
         
         document.getElementById(`copy${id}`).addEventListener('click', () => navigator.clipboard.writeText(document.getElementById(`output${id}`).textContent).then(() => alert('Copied!')));
