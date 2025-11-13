@@ -36,6 +36,8 @@
       .output-feature { flex-grow: 1; }
       .output { flex-grow: 1; overflow-y: auto; min-height: 0; }
       
+      @media (max-width: 900px) { .feature-container { flex-direction: column; } }
+
       @media (min-width: 901px) {
         #tab-content-0 .feature-container { flex-direction: row-reverse; }
         #tab-content-0 .control-panel { flex: 1.5; }
@@ -99,10 +101,11 @@
       .camera-container { position: relative; width: 100%; }
       #camera-feed, #capture-canvas {
         width: 100%; border-radius: 8px; background: #000; aspect-ratio: 4 / 3;
-        object-fit: contain;
+        transform: scaleX(-1);
       }
-      #camera-feed { transform: scaleX(-1); display: block; }
+      #camera-feed { display: block; }
       #capture-canvas { display: none; }
+      /* FIX: Removed transform from the overlay itself */
       #countdown-overlay {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         display: none; justify-content: center; align-items: center;
@@ -161,20 +164,6 @@
         font-size:1.5em; color: var(--checkmark-color); transition: color 0.3s;
       }
       .palette.selected .checkmark{display:block;}
-
-      /* --- MOBILE RESPONSIVE STYLES --- */
-      @media (max-width: 600px) {
-        body { padding: 10px; }
-        .container { padding: 15px; }
-        h1 { font-size: 50px; }
-        h2 { font-size: 1.5em; }
-        .feature { padding: 15px; }
-        .feature-container { flex-direction: column; }
-        .tabs { gap: 5px; font-size: 0.9em; }
-        .tab-button { padding: 8px 10px; }
-        .theme-switcher { flex-direction: column; gap: 10px; }
-        #countdown-overlay { font-size: 5rem; }
-      }
     </style>
   </head>
   <body>
@@ -233,15 +222,13 @@
               <div class="button-group" style="justify-content: center; margin-top: 15px;">
                 <button id="start-camera" data-original-text="Start Camera">Start Camera</button>
                 <button id="stop-camera" data-original-text="Stop Camera" style="display: none;">Stop Camera</button>
-                <button id="upload-image" data-original-text="Upload Picture">Upload Picture</button>
-                <input type="file" id="image-uploader" accept="image/*" style="display:none;" />
                 <button id="capture-image" data-original-text="Analyze Outfit" disabled>Analyze Outfit</button>
               </div>
             </div>
           </div>
           <div class="canvas">
             <div id="feature0-output" class="feature output-feature">
-              <div id="output0" class="output">Enable your camera or upload a picture to get styling ideas.</div>
+              <div id="output0" class="output">Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.</div>
             </div>
           </div>
         </div>
@@ -403,7 +390,7 @@
                 
                 const text = data.text || 'No content generated.';
                 if (outputEl) {
-                    const cleanHtml = text.replace(/\*\*/g, '').replace(/###? ?\d+\. /g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
+                    const cleanHtml = text.replace(/\*\*/g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
                     outputEl.innerHTML = cleanHtml;
                 }
                 return text;
@@ -424,7 +411,7 @@
 
       async function generatePalettes(hexColor, containerEl, okBtn) {
           const prompt = {
-            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B").Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
+            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B"). Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
           };
           
           containerEl.innerHTML = '<h4>Generating palettes...</h4>';
@@ -490,14 +477,12 @@
       const canvasEl = document.getElementById('capture-canvas');
       const startBtn = document.getElementById('start-camera');
       const stopBtn = document.getElementById('stop-camera');
-      const uploadBtn = document.getElementById('upload-image');
-      const imageUploader = document.getElementById('image-uploader');
       const captureBtn = document.getElementById('capture-image');
       const output0 = document.getElementById('output0');
       const timerControls = document.getElementById('timer-controls');
       const countdownOverlay = document.getElementById('countdown-overlay');
       const labelOverlay = document.getElementById('label-overlay');
-      const initialOutputContent = "Enable your camera or upload a picture to get styling ideas.";
+      const initialOutputContent = "Enable your camera and capture an image of your outfit. The AI will provide feedback and styling ideas.";
       let stream = null;
 
       function stopStream() {
@@ -515,10 +500,7 @@
           labelOverlay.innerHTML = '';
           output0.innerHTML = initialOutputContent;
           startBtn.textContent = "Start Camera";
-          startBtn.disabled = false;
           stopBtn.style.display = 'none';
-          uploadBtn.style.display = 'inline-block';
-          uploadBtn.disabled = false;
           captureBtn.disabled = true;
           timerControls.style.display = 'none';
           countdownOverlay.style.display = 'none';
@@ -530,7 +512,6 @@
             canvasEl.style.display = 'none';
             labelOverlay.innerHTML = '';
             output0.innerHTML = initialOutputContent;
-            uploadBtn.style.display = 'inline-block';
           }
           if (stream) stopStream();
           try {
@@ -539,8 +520,6 @@
               await videoEl.play();
               startBtn.textContent = "Start Over";
               stopBtn.style.display = 'inline-block';
-              stopBtn.disabled = false; // FIX: Explicitly enable stop button
-              uploadBtn.style.display = 'none';
               captureBtn.disabled = false;
               timerControls.style.display = 'flex';
           } catch (err) {
@@ -551,41 +530,8 @@
 
       startBtn.addEventListener('click', startOrResetCamera);
       stopBtn.addEventListener('click', resetCameraToInitialState);
-      uploadBtn.addEventListener('click', () => imageUploader.click());
 
-      imageUploader.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            stopStream();
-            const img = new Image();
-            img.onload = () => {
-                canvasEl.style.transform = 'none';
-                const context = canvasEl.getContext('2d');
-                canvasEl.width = img.width;
-                canvasEl.height = img.height;
-                context.drawImage(img, 0, 0);
-
-                videoEl.style.display = 'none';
-                canvasEl.style.display = 'block';
-                labelOverlay.innerHTML = '';
-                
-                startBtn.textContent = "Start Over";
-                stopBtn.style.display = 'none';
-                uploadBtn.style.display = 'inline-block';
-                captureBtn.disabled = false;
-                timerControls.style.display = 'none';
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-        event.target.value = null;
-      });
-
-
-      async function analyzeAndDrawLabels(base64Image, isMirrored) {
+      async function analyzeAndDrawLabels(base64Image) {
         const prompt = {
             text: `Analyze the provided image. Identify up to 4 main clothing items (e.g., hat, shirt, trousers, shoes). For each item, provide its name and a central coordinate point (x, y) as percentages of the image dimensions. The top-left corner is (0,0). Format as a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
             image: base64Image
@@ -602,7 +548,7 @@
                 if(!item.item || !item.point) return;
                 const labelDiv = document.createElement('div');
                 labelDiv.className = 'outfit-label';
-                labelDiv.style.left = isMirrored ? `${100 - item.point.x}%` : `${item.point.x}%`;
+                labelDiv.style.left = `${100 - item.point.x}%`;
                 labelDiv.style.top = `${item.point.y}%`;
                 labelDiv.innerHTML = `<div class="dot"></div><div class="line"></div><div class="text">${item.item}</div>`;
                 labelOverlay.appendChild(labelDiv);
@@ -611,89 +557,71 @@
       }
 
       captureBtn.addEventListener('click', () => {
-        const isFromLiveCamera = videoEl.style.display !== 'none';
-        const timerValue = isFromLiveCamera ? parseInt(document.querySelector('input[name="timer"]:checked').value, 10) : 0;
+        const timerValue = parseInt(document.querySelector('input[name="timer"]:checked').value, 10);
         
-        const performAnalysis = async () => {
-            let base64ImageData;
-            let isMirrored = false;
-
-            if (isFromLiveCamera) {
-                isMirrored = true;
-                canvasEl.style.transform = 'scaleX(-1)';
-                const context = canvasEl.getContext('2d');
-                canvasEl.width = videoEl.videoWidth;
-                canvasEl.height = videoEl.videoHeight;
-                context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-                videoEl.style.display = 'none';
-                canvasEl.style.display = 'block';
-                stopStream();
-                stopBtn.style.display = 'none';
-            }
+        const performCapture = async () => {
+            canvasEl.width = videoEl.videoWidth;
+            canvasEl.height = videoEl.videoHeight;
+            const context = canvasEl.getContext('2d');
+            context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+            videoEl.style.display = 'none';
+            canvasEl.style.display = 'block';
             
-            base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
+            stopStream();
+            stopBtn.style.display = 'none';
             
+            const base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             const stylePrompt = {
-              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 8-part structure, using markdown-style headers.
+              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 7-part structure, using markdown-style headers.
 
-**1. Fit Analysis**
-- Fit Score: [A percentage score with a brief summary, e.g., "89% Balanced – clean lines, good proportion."]
-- Fix-It Tip: [A concrete suggestion for improvement, e.g., "Your jacket length cuts too low; try a cropped layer to extend your legs visually."]
-- Fast Swap Suggestion: [A quick item replacement idea, e.g., "Replace plain tee with something textured to create dimension."]
-
-**2. The Vibe (Mood Summary)**
+**1. The Vibe (Mood Summary)**
 A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
 
-**3. Style Formula (Quick Breakdown)**
+**2. Style Formula (Quick Breakdown)**
 A fill-in-the-blanks style breakdown of what you see in the image.
 - Top: [Type, color, fabric, or fit]
 - Bottom: [Type, cut, and texture]
 - Shoes: [Type + color + material]
 - Accessories: [Functional, statement, or minimal pieces]
 
-**4. Body Shape Focus**
+**3. Body Shape Focus**
 1-2 lines explaining why this outfit works for the visible body shape, focusing on principles.
 
-**5. Color & Texture Tip**
+**4. Color & Texture Tip**
 Explain how colors and fabrics in the outfit interact.
 
-**6. Alternate Options (for Flexibility)**
+**5. Alternate Options (for Flexibility)**
 Offer 1-2 "switch-up" ideas to elevate or change the vibe of the current outfit.
 
-**7. Care or Comfort Note (optional)**
+**6. Care or Comfort Note (optional)**
 A practical tip related to the garments seen.
 
-**8. Why It Works (Summary)**
+**7. Why It Works (Summary)**
 A single sentence reinforcing the design logic of the outfit.`,
               image: base64ImageData
             };
             
-            [startBtn, stopBtn, uploadBtn, captureBtn].forEach(btn => btn.disabled = true);
-
             await Promise.all([
               callProxy(stylePrompt, output0, captureBtn, '0'),
-              analyzeAndDrawLabels(base64ImageData, isMirrored)
+              analyzeAndDrawLabels(base64ImageData)
             ]);
-
-            startBtn.disabled = false;
-            uploadBtn.disabled = false;
         };
         
         if (timerValue > 0) {
             let count = timerValue;
-            countdownOverlay.textContent = count;
+            countdownOverlay.textContent = count; // FIX: Use textContent directly
             countdownOverlay.style.display = 'flex';
             const interval = setInterval(() => {
                 count--;
-                countdownOverlay.textContent = count;
+                countdownOverlay.textContent = count; // FIX: Use textContent directly
                 if (count <= 0) {
                     clearInterval(interval);
                     countdownOverlay.style.display = 'none';
-                    performAnalysis();
+                    performCapture();
                 }
             }, 1000);
         } else {
-            performAnalysis();
+            performCapture();
         }
       });
 
