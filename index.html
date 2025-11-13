@@ -110,23 +110,6 @@
         -webkit-text-stroke: 2px black; text-stroke: 2px black;
         z-index: 10;
       }
-      #label-overlay {
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
-      }
-      .outfit-label {
-        position: absolute; display: flex; align-items: center;
-        transform: translate(-50%, -50%); animation: fadeIn 0.5s ease-in-out;
-      }
-      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      .outfit-label .dot {
-        width: 15px; height: 15px; background: var(--primary-accent-color);
-        border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      }
-      .outfit-label .line { width: 40px; height: 2px; background: #fff; }
-      .outfit-label .text {
-        padding: 5px 10px; background: rgba(0,0,0,0.7); color: #fff;
-        border-radius: 5px; white-space: nowrap; font-size: 0.9em;
-      }
       
       #timer-controls {
         display: none; flex-direction: column; align-items: center; margin-top: 15px; gap: 10px;
@@ -218,7 +201,6 @@
                   <video id="camera-feed" playsinline></video>
                   <canvas id="capture-canvas"></canvas>
                   <div id="countdown-overlay"></div>
-                  <div id="label-overlay"></div>
               </div>
               <div id="timer-controls">
                 <strong>Timer:</strong>
@@ -383,32 +365,17 @@
         if (btnEl) { btnEl.disabled = true; btnEl.textContent = processingText; }
         if (featureId) toggleInputs(featureId, true);
         
-        const maxRetries = 3;
-        let attempt = 0;
-
         try {
-            while (attempt < maxRetries) {
-                const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
-
-                if (response.status === 503 && attempt < maxRetries - 1) {
-                    attempt++;
-                    const delay = Math.pow(2, attempt) * 1000;
-                    if (outputEl) outputEl.innerHTML = `Model is busy. Retrying in ${delay / 1000} seconds...`;
-                    await sleep(delay);
-                    continue;
-                }
-
-                const data = await response.json();
-                if (!response.ok) { throw new Error(data.error || `API error with status ${response.status}`); }
-                
-                const text = data.text || 'No content generated.';
-                if (outputEl) {
-                    const cleanHtml = text.replace(/\*\*/g, '').replace(/###? ?\d+\. /g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
-                    outputEl.innerHTML = cleanHtml;
-                }
-                return text;
+            const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prompt) });
+            const data = await response.json();
+            if (!response.ok) { throw new Error(data.error || `API error with status ${response.status}`); }
+            
+            const text = data.text || 'No content generated.';
+            if (outputEl) {
+                const cleanHtml = text.replace(/\*\*/g, '').replace(/###? ?\d+\. /g, '').replace(/(\r\n|\n|\r)/gm, '<br>');
+                outputEl.innerHTML = cleanHtml;
             }
-            throw new Error('All retry attempts failed.');
+            return text;
         } catch (e) {
             if (outputEl) outputEl.textContent = `Error: ${e.message}`;
             console.error("API call failed:", e);
@@ -424,7 +391,7 @@
 
       async function generatePalettes(hexColor, containerEl, okBtn) {
           const prompt = {
-            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name (e.g., "Forest Floor"). For each palette, provide a list of exactly 3 complementary colors. Each color must have a "name" (like "Moss Green") and a valid "hex" code (like "#3A5F0B").Format as a valid JSON object: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
+            text: `Given main hex color "${hexColor}", generate three distinct creative color palettes. Each palette needs a unique theme name. For each, provide a list of exactly 3 complementary colors with a "name" and a valid "hex" code. Respond ONLY with a valid JSON object like this: {"palettes": [{"theme": "Theme Name", "colors": [{"name": "Color Name", "hex": "#_hex_code"}]}]}`
           };
           
           containerEl.innerHTML = '<h4>Generating palettes...</h4>';
@@ -496,7 +463,6 @@
       const output0 = document.getElementById('output0');
       const timerControls = document.getElementById('timer-controls');
       const countdownOverlay = document.getElementById('countdown-overlay');
-      const labelOverlay = document.getElementById('label-overlay');
       const initialOutputContent = "Enable your camera or upload a picture to get styling ideas.";
       let stream = null;
 
@@ -512,7 +478,6 @@
           videoEl.srcObject = null;
           videoEl.style.display = 'block';
           canvasEl.style.display = 'none';
-          labelOverlay.innerHTML = '';
           output0.innerHTML = initialOutputContent;
           startBtn.textContent = "Start Camera";
           startBtn.disabled = false;
@@ -528,7 +493,6 @@
           if (startBtn.textContent === "Start Over") {
             videoEl.style.display = 'block';
             canvasEl.style.display = 'none';
-            labelOverlay.innerHTML = '';
             output0.innerHTML = initialOutputContent;
             uploadBtn.style.display = 'inline-block';
           }
@@ -567,11 +531,8 @@
                 canvasEl.width = img.width;
                 canvasEl.height = img.height;
                 context.drawImage(img, 0, 0);
-
                 videoEl.style.display = 'none';
                 canvasEl.style.display = 'block';
-                labelOverlay.innerHTML = '';
-                
                 startBtn.textContent = "Start Over";
                 stopBtn.style.display = 'none';
                 uploadBtn.style.display = 'inline-block';
@@ -584,46 +545,14 @@
         event.target.value = null;
       });
 
-      async function analyzeAndDrawLabels(base64Image, isMirrored) {
-        const prompt = {
-            text: `Analyze this image. Identify up to 4 main clothing items. For each item, give its name and a central coordinate point (x, y) as percentages. Respond with ONLY a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
-            image: base64Image
-        };
-        const resultText = await callProxy(prompt, null, null);
-        if (!resultText) return;
-
-        labelOverlay.innerHTML = '';
-        try {
-            const startIndex = resultText.indexOf('[');
-            const endIndex = resultText.lastIndexOf(']');
-            if (startIndex === -1 || endIndex === -1) {
-              throw new Error("No valid JSON array found in the response for labels.");
-            }
-            const jsonString = resultText.substring(startIndex, endIndex + 1);
-            const items = JSON.parse(jsonString);
-
-            items.forEach(item => {
-                if(!item.item || !item.point) return;
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'outfit-label';
-                labelDiv.style.left = isMirrored ? `${100 - item.point.x}%` : `${item.point.x}%`;
-                labelDiv.style.top = `${item.point.y}%`;
-                labelDiv.innerHTML = `<div class="dot"></div><div class="line"></div><div class="text">${item.item}</div>`;
-                labelOverlay.appendChild(labelDiv);
-            });
-        } catch(e) { console.error("Failed to parse or draw labels:", e); }
-      }
-
       captureBtn.addEventListener('click', () => {
         const isFromLiveCamera = videoEl.style.display !== 'none';
         const timerValue = isFromLiveCamera ? parseInt(document.querySelector('input[name="timer"]:checked').value, 10) : 0;
         
         const performAnalysis = async () => {
             let base64ImageData;
-            let isMirrored = false;
 
             if (isFromLiveCamera) {
-                isMirrored = true;
                 canvasEl.style.transform = 'scaleX(-1)';
                 const context = canvasEl.getContext('2d');
                 canvasEl.width = videoEl.videoWidth;
@@ -644,10 +573,7 @@
             
             [startBtn, stopBtn, uploadBtn, captureBtn].forEach(btn => btn.disabled = true);
 
-            await Promise.all([
-              callProxy(stylePrompt, output0, captureBtn, '0'),
-              analyzeAndDrawLabels(base64ImageData, isMirrored)
-            ]);
+            await callProxy(stylePrompt, output0, captureBtn, '0');
 
             startBtn.disabled = false;
             uploadBtn.disabled = false;
