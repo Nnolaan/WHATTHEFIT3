@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
         }
         
         const genAI = new GoogleGenerativeAI(key);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         // Vercel's body parser might not be enabled, so we parse manually
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
