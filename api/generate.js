@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         // We must specify the stable 'v1' API version for newer models.
         const genAI = new GoogleGenerativeAI(key, { apiVersion: 'v1' }); 
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
         const { text, image } = req.body;
 
