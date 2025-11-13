@@ -1,5 +1,5 @@
 // This is the entire content for: api/generate.js
-// This version uses a stable, two-step AI chain to provide reliable style analysis.
+// This version includes the critical Content-Type header to fix the "Bad Request" error.
 
 export default async function handler(req, res) {
     // Standard headers
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
         }
 
         let finalResponseText = 'No content generated.';
+        let model;
 
         if (image) {
             // --- STEP 1: Use the Vision Model (LLaVA) to describe the image ---
@@ -36,9 +37,13 @@ export default async function handler(req, res) {
                 image: [...imageBuffer]
             };
 
-            const visionResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/llava-hf/llava-1.5-7b-hf`, {
+            model = '@cf/llava-hf/llava-1.5-7b-hf';
+            const visionResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${apiToken}` },
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json' // THE CRITICAL FIX IS HERE
+                },
                 body: JSON.stringify(visionInputs)
             });
 
@@ -49,12 +54,16 @@ export default async function handler(req, res) {
             const imageDescription = visionData.result?.description || 'A person wearing clothes.';
             
             // --- STEP 2: Feed the description to the Creative Text Model (Llama 2) ---
-            const creativePrompt = `Based on the following description of an outfit: "${imageDescription}". ${text}`; // Combine the description with the original prompt
+            const creativePrompt = `Based on the following description of an outfit: "${imageDescription}". ${text}`;
             const creativeInputs = { prompt: creativePrompt };
             
-            const creativeResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-2-7b-chat-int8`, {
+            model = '@cf/meta/llama-2-7b-chat-int8';
+            const creativeResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${apiToken}` },
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json' // THE CRITICAL FIX IS HERE
+                },
                 body: JSON.stringify(creativeInputs)
             });
             
@@ -67,9 +76,13 @@ export default async function handler(req, res) {
         } else {
             // --- If there's no image, just use the text model directly ---
             const textInputs = { prompt: text };
-            const textResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-2-7b-chat-int8`, {
+            model = '@cf/meta/llama-2-7b-chat-int8';
+            const textResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${apiToken}` },
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json' // THE CRITICAL FIX IS HERE
+                },
                 body: JSON.stringify(textInputs)
             });
 
