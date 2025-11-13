@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "dependencies": {
     "@google/generative-ai": "^0.14.0"
   }
