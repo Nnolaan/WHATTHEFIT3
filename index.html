@@ -36,8 +36,6 @@
       .output-feature { flex-grow: 1; }
       .output { flex-grow: 1; overflow-y: auto; min-height: 0; }
       
-      @media (max-width: 900px) { .feature-container { flex-direction: column; } }
-
       @media (min-width: 901px) {
         #tab-content-0 .feature-container { flex-direction: row-reverse; }
         #tab-content-0 .control-panel { flex: 1.5; }
@@ -171,7 +169,7 @@
         h2 { font-size: 1.5em; }
         .feature { padding: 15px; }
         .feature-container { flex-direction: column; }
-        .tabs { gap: 5px; font-size: 0.9em; }
+        .tabs { gap: 5px; font-size: 0.9em; overflow-x: auto; }
         .tab-button { padding: 8px 10px; }
         .theme-switcher { flex-direction: column; gap: 10px; }
         #countdown-overlay { font-size: 5rem; }
@@ -589,7 +587,7 @@
 
       async function analyzeAndDrawLabels(base64Image, isMirrored) {
         const prompt = {
-            text: `Analyze the provided image. Identify up to 4 main clothing items (e.g., hat, shirt, trousers, shoes). For each item, provide its name and a central coordinate point (x, y) as percentages of the image dimensions. The top-left corner is (0,0). Format as a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
+            text: `Analyze this image. Identify up to 4 main clothing items. For each item, give its name and a central coordinate point (x, y) as percentages. Return ONLY a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
             image: base64Image
         };
         const resultText = await callProxy(prompt, null, null);
@@ -597,9 +595,14 @@
 
         labelOverlay.innerHTML = '';
         try {
-            const jsonStringMatch = resultText.match(/\[.*\]/s);
-            if (!jsonStringMatch) throw new Error("No valid JSON array found for labels.");
-            const items = JSON.parse(jsonStringMatch[0]);
+            const startIndex = resultText.indexOf('[');
+            const endIndex = resultText.lastIndexOf(']');
+            if (startIndex === -1 || endIndex === -1) {
+              throw new Error("No valid JSON array found in the response for labels.");
+            }
+            const jsonString = resultText.substring(startIndex, endIndex + 1);
+            const items = JSON.parse(jsonString);
+
             items.forEach(item => {
                 if(!item.item || !item.point) return;
                 const labelDiv = document.createElement('div');
@@ -636,37 +639,7 @@
             base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             
             const stylePrompt = {
-              text: `You are an expert fashion stylist. Analyze the outfit in the image and generate a detailed recommendation. Your response MUST follow this exact 8-part structure, using markdown-style headers.
-
-**1. Fit Analysis**
-- Fit Score: [A percentage score with a brief summary, e.g., "89% Balanced – clean lines, good proportion."]
-- Fix-It Tip: [A concrete suggestion for improvement, e.g., "Your jacket length cuts too low; try a cropped layer to extend your legs visually."]
-- Fast Swap Suggestion: [A quick item replacement idea, e.g., "Replace plain tee with something textured to create dimension."]
-
-**2. The Vibe (Mood Summary)**
-A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
-
-**3. Style Formula (Quick Breakdown)**
-A fill-in-the-blanks style breakdown of what you see in the image.
-- Top: [Type, color, fabric, or fit]
-- Bottom: [Type, cut, and texture]
-- Shoes: [Type + color + material]
-- Accessories: [Functional, statement, or minimal pieces]
-
-**4. Body Shape Focus**
-1-2 lines explaining why this outfit works for the visible body shape, focusing on principles.
-
-**5. Color & Texture Tip**
-Explain how colors and fabrics in the outfit interact.
-
-**6. Alternate Options (for Flexibility)**
-Offer 1-2 "switch-up" ideas to elevate or change the vibe of the current outfit.
-
-**7. Care or Comfort Note (optional)**
-A practical tip related to the garments seen.
-
-**8. Why It Works (Summary)**
-A single sentence reinforcing the design logic of the outfit.`,
+              text: "As a cool and friendly fashion stylist, briefly describe the outfit in this image. Then, give two specific, actionable styling tips to elevate the look. Be encouraging and direct (around 100-150 words).",
               image: base64ImageData
             };
             
@@ -710,44 +683,10 @@ A single sentence reinforcing the design logic of the outfit.`,
             if (id === '1') {
                 const bodyShape = document.getElementById('bodyShape1').value;
                 const occasion = document.getElementById('occasion1').value;
-                text = `You are an expert fashion stylist. Generate a detailed outfit recommendation based on the user's inputs. Your response MUST follow this exact 7-part structure, using markdown-style headers.
-
-**1. The Vibe (Mood Summary)**
-A short, mood-based overview in plain language. Example: "Effortless confidence meets urban cool — clean lines, dark tones, and a quiet edge."
-
-**2. Style Formula (Quick Breakdown)**
-A fill-in-the-blanks style breakdown.
-- Top: [Type, color, fabric, or fit]
-- Bottom: [Type, cut, and texture]
-- Shoes: [Type + color + material]
-- Accessories: [Functional, statement, or minimal pieces]
-
-**3. Body Shape Focus**
-1-2 lines explaining why this works for their shape, focusing on principles. Example: "For an hourglass figure, defining your waistline with high-rise trousers naturally highlights your proportions."
-
-**4. Color & Texture Tip**
-Explain how colors and fabrics interact. Example: "Sticking to a single tone like black elongates your frame. Mix matte and glossy textures to add visual depth."
-
-**5. Alternate Options (for Flexibility)**
-Offer 1-2 "switch-up" ideas. Example: "To dress it up, swap sneakers for loafers. For a casual feel, trade trousers for straight-leg jeans."
-
-**6. Care or Comfort Note (optional)**
-A practical tip. Example: "Choose breathable cotton for warmer days."
-
-**7. Why It Works (Summary)**
-A single sentence reinforcing the design logic. Example: "Balanced proportions, simple structure, and subtle details make this look timeless without trying too hard."
-
----
-USER INPUTS:
-- Style: ${style}
-- Garment(s): ${garmentTypes || 'Any'}
-- Body Shape: ${bodyShape}
-- Occasion: ${occasion}
-- Main Color: ${color} ${paletteInfo}
----`;
+                text = `As a friendly stylist, give a direct outfit recommendation based on these inputs. Keep it concise (around 150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
             } else {
                 const climate = document.getElementById('climate2').value;
-                text = `As an innovative fashion strategist, your response must be direct and actionable. No fluff. The core concept MUST be innovative and solve a real-world problem. Generate a concise Fashion Concept (~300 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
+                text = `As an innovative fashion strategist, give a concise and actionable Fashion Concept (~150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
             }
             
             const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
@@ -759,16 +698,12 @@ USER INPUTS:
         });
 
         document.getElementById(`expand${id}`).addEventListener('click', (ev) => {
-            const text = id === '1'
-                ? `Expand the previous outfit idea (~800 words) with more options for each piece (Top, Bottom, Shoes, Accessories). Previous Idea: "${featureStates[id].lastConcept}"`
-                : `Expand on the previous concept with more detail (~800 words), focusing on actionable specifics for Fabric, Construction, and Warnings. Previous Concept: "${featureStates[id].lastConcept}"`;
+            const text = `Expand on this idea with more detail and options (~400 words): "${featureStates[id].lastConcept}"`;
             callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
         });
 
         document.getElementById(`mutate${id}`).addEventListener('click', async (ev) => {
-            const text = id === '1'
-                ? `Mutate the previous outfit idea for a different vibe (~300 words). Original Idea: "${featureStates[id].lastConcept}"`
-                : `Mutate this concept into a new, innovative idea with a different angle (~300 words). Original Concept: "${featureStates[id].lastConcept}"`;
+            const text = `Mutate this idea into a different concept (~150 words): "${featureStates[id].lastConcept}"`;
             const result = await callProxy({ text }, document.getElementById(`output${id}`), ev.currentTarget, id);
             if (result) { featureStates[id].lastConcept = result; }
         });
