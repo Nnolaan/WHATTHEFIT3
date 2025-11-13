@@ -1,5 +1,5 @@
 // This is the entire content for: api/generate.js
-// This version uses Cloudflare AI and the correct Node.js method for handling images.
+// This version uses a stable, two-step AI chain to provide reliable style analysis.
 
 export default async function handler(req, res) {
     // Standard headers
@@ -26,42 +26,61 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Text prompt is missing.' });
         }
 
-        let inputs = { prompt: text };
-        let model = '@cf/meta/llama-2-7b-chat-int8'; // Default text model
+        let finalResponseText = 'No content generated.';
 
         if (image) {
-            // If there's an image, switch to the vision model
-            model = '@cf/llava-hf/llava-1.5-7b-hf';
-            
-            // THIS IS THE FIX: Use Node.js Buffer to handle the image data, not a browser function.
+            // --- STEP 1: Use the Vision Model (LLaVA) to describe the image ---
             const imageBuffer = Buffer.from(image, 'base64');
-            
-            inputs = {
-                prompt: text,
-                image: [...imageBuffer] // Spread the buffer directly into an array of bytes
+            const visionInputs = {
+                prompt: "Describe the clothes, colors, and textures of the person's outfit in this image in factual detail.",
+                image: [...imageBuffer]
             };
+
+            const visionResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/llava-hf/llava-1.5-7b-hf`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiToken}` },
+                body: JSON.stringify(visionInputs)
+            });
+
+            if (!visionResponse.ok) {
+                throw new Error(`Cloudflare Vision AI error: ${visionResponse.statusText}`);
+            }
+            const visionData = await visionResponse.json();
+            const imageDescription = visionData.result?.description || 'A person wearing clothes.';
+            
+            // --- STEP 2: Feed the description to the Creative Text Model (Llama 2) ---
+            const creativePrompt = `Based on the following description of an outfit: "${imageDescription}". ${text}`; // Combine the description with the original prompt
+            const creativeInputs = { prompt: creativePrompt };
+            
+            const creativeResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-2-7b-chat-int8`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiToken}` },
+                body: JSON.stringify(creativeInputs)
+            });
+            
+            if (!creativeResponse.ok) {
+                throw new Error(`Cloudflare Text AI error: ${creativeResponse.statusText}`);
+            }
+            const creativeData = await creativeResponse.json();
+            finalResponseText = creativeData.result?.response || 'Could not generate styling ideas.';
+
+        } else {
+            // --- If there's no image, just use the text model directly ---
+            const textInputs = { prompt: text };
+            const textResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/meta/llama-2-7b-chat-int8`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiToken}` },
+                body: JSON.stringify(textInputs)
+            });
+
+            if (!textResponse.ok) {
+                throw new Error(`Cloudflare Text AI error: ${textResponse.statusText}`);
+            }
+            const textData = await textResponse.json();
+            finalResponseText = textData.result?.response || 'No content generated.';
         }
 
-        const cloudflareUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
-
-        const response = await fetch(cloudflareUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(inputs)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Cloudflare AI error: ${response.status} ${errorText}`);
-        }
-
-        const data = await response.json();
-        const responseText = data.result?.response || 'No content generated.';
-
-        return res.status(200).json({ text: responseText });
+        return res.status(200).json({ text: finalResponseText });
 
     } catch (err) {
         console.error("Server Error in /api/generate (Cloudflare):", err);
