@@ -584,10 +584,9 @@
         event.target.value = null;
       });
 
-
       async function analyzeAndDrawLabels(base64Image, isMirrored) {
         const prompt = {
-            text: `Analyze this image. Identify up to 4 main clothing items. For each item, give its name and a central coordinate point (x, y) as percentages. Return ONLY a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
+            text: `Analyze this image. Identify up to 4 main clothing items. For each item, give its name and a central coordinate point (x, y) as percentages. Respond with ONLY a valid JSON array. Example: [{"item": "T-Shirt", "point": {"x": 50, "y": 35}}, {"item": "Jeans", "point": {"x": 50, "y": 70}}]`,
             image: base64Image
         };
         const resultText = await callProxy(prompt, null, null);
@@ -639,7 +638,7 @@
             base64ImageData = canvasEl.toDataURL('image/jpeg', 0.5).split(',')[1];
             
             const stylePrompt = {
-              text: "As a cool and friendly fashion stylist, briefly describe the outfit in this image. Then, give two specific, actionable styling tips to elevate the look. Be encouraging and direct (around 100-150 words).",
+              text: "Analyze the outfit in this image. Provide a brief mood summary and two specific, actionable styling tips to improve the look. Be encouraging and direct. Maximum 150 words.",
               image: base64ImageData
             };
             
@@ -683,7 +682,7 @@
             if (id === '1') {
                 const bodyShape = document.getElementById('bodyShape1').value;
                 const occasion = document.getElementById('occasion1').value;
-                text = `As a friendly stylist, give a direct outfit recommendation based on these inputs. Keep it concise (around 150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
+                text = `Generate a direct outfit recommendation based on these inputs. Structure the response with these headers: 1. The Vibe, 2. Style Formula, 3. Body Shape Tip. Keep it concise (around 150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Body Shape: ${bodyShape}, Occasion: ${occasion}, Main Color: ${color} ${paletteInfo}.`;
             } else {
                 const climate = document.getElementById('climate2').value;
                 text = `As an innovative fashion strategist, give a concise and actionable Fashion Concept (~150 words). Inputs: Style: ${style}, Garment(s): ${garmentTypes || 'Any'}, Main Color: ${color} ${paletteInfo}, Climate: ${climate}.`;
